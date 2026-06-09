@@ -65,13 +65,14 @@ exports.getAllUserBYId = (req, res) => {
 
 // دالة اضافة مستخدم جديد
 exports.addUser = (req, res, io) => {
-    const { username, email, password } = req.body;
-    const sql = "INSERT INTO users (uuid,username, email, password) VALUES (?,?, ?, ?)";
-    db.query(sql, [uuuid,username, email, password], (err, result) => {
-        if (err) return res.status(500).json(err);
-        io.emit("dataChanged");
-        res.json({ message: "added" });
-    });
+	console.log(uuid);
+    // const { username, email, password } = req.body;
+    // const sql = "INSERT INTO users (uuid,username, email, password) VALUES (?,?, ?, ?)";
+    // db.query(sql, [uuuid,username, email, password], (err, result) => {
+    //     if (err) return res.status(500).json(err);
+    //     io.emit("dataChanged");
+    //     res.json({ message: "added" });
+    // });
 };
 // دالة حذف مستخدم
 exports.deleteUser = (req, res, io) => {

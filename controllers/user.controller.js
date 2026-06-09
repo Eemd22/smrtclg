@@ -71,6 +71,7 @@ exports.addUser = (req, res, io) => {
     db.query(sql, [uuid,username, email, password], (err, result) => {
         if (err) return res.status(500).json(err);
         io.emit("dataChanged");
+		console.log(uuid);
         res.json({ message: "added" });
     });
 };

@@ -10,6 +10,9 @@ const id = uuid();
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+const PORT = process.env.PORT || 3000;
+
 // اكواد السماح للتطبيق بالكتابة داخل الملفات
 app.use("/users/uploads", express.static("users/uploads"));
 app.use("/posts/uploads", express.static("posts/uploads"));
@@ -36,7 +39,7 @@ io.on("connection", (socket) => {
 const apiRoutes = require("./routes/api")(io);
 app.use("/", apiRoutes);
 
-server.listen(3000, () => {
+server.listen(PORT, () => {
     console.log("Server running on port 3000");
 });
 

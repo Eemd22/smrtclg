@@ -1,7 +1,6 @@
 const db = require("../config/db");
 const {v4: uuid} = require('uuid');
-const uid = uuid();
-const uuuid = "userID:"+uid;
+
 
 // دالة تسجيل الدخول
 exports.login = (req, res) => {
@@ -65,7 +64,8 @@ exports.getAllUserBYId = (req, res) => {
 
 // دالة اضافة مستخدم جديد
 exports.addUser = (req, res, io) => {
-	
+	const uid = uuid();
+const uuuid = "userID:"+uid;
     const { username, email, password } = req.body;
     const sql = "INSERT INTO users (uuid,username, email, password) VALUES (?,?, ?, ?)";
     db.query(sql, [uuuid,username, email, password], (err, result) => {

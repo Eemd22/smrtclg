@@ -67,7 +67,7 @@ exports.getAllUserBYId = (req, res) => {
 exports.addUser = (req, res, io) => {
     const { username, email, password } = req.body;
     const sql = "INSERT INTO users (uuid,username, email, password) VALUES (?,?, ?, ?)";
-    db.query(sql, [uuuid,username, email, password], (err, result) => {
+    db.query(sql, [uuid,username, email, password], (err, result) => {
         if (err) return res.status(500).json(err);
         io.emit("dataChanged");
         res.json({ message: "added" });

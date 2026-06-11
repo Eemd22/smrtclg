@@ -40,7 +40,7 @@
  router.post("/get_user", userController.login);
  router.post("/add_user", (req, res) => userController.addUser(req, res, io));
  router.post("/profile/:userid", upload.single("image"),  (req, res) => userController.editProfile(req, res, io));
- router.get("/get_user_by_id",  (req, res) => userController.getUserBiId(req, res));
+ router.get("/get_user_by_id/:userid",  (req, res) => userController.getUserBiId(req, res));
  router.get("/userid/:userid",  (req, res) => userController.getM(req, res));
 router.get("/get_allusers",  (req, res) => userController.getAllUser(req, res));
 router.get("/get_users_byid/:userid",  (req, res) => userController.getAllUserBYId(req, res));

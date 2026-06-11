@@ -14,7 +14,10 @@ exports.login = (req, res) => {
 };
 // دالة جلب مستخدم بواسطة المعرف
 exports.getUserBiId = (req, res) => {
-   const id = req.params.userid;
+   
+	
+SET sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''));
+	const id = req.params.userid;
    
    db.query(`
     SELECT users.*, COUNT(posts.id) AS posts_count

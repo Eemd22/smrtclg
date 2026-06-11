@@ -42,16 +42,16 @@ exports.getAllUser = (req, res) => {
 exports.getAllUserBYId = (req, res) => {
    const id = req.params.userid;
    
-    db.query(`  SELECT *,
-	COUNT(posts.id) AS posts_count
-        FROM posts
-        LEFT JOIN users  ON posts.user_id =  users.uuid 
-        WHERE users.uuid = ?
-    `,
-         [id], (err, result) => {
-        if (err) return res.status(500).json(err);
-        res.json(result);
-    });
+   db.query(`
+    SELECT users.*, COUNT(posts.id) AS posts_count
+    FROM users
+    LEFT JOIN posts ON users.uuid = posts.user_id
+    WHERE users.uuid = ?
+    GROUP BY users.uuid
+`, [id], (err, result) => {
+    if (err) return res.status(500).json(err);
+    res.json(result);
+});
 };
 
 //get_allusers

@@ -14,11 +14,10 @@ exports.login = (req, res) => {
 };
 // دالة جلب مستخدم بواسطة المعرف
 exports.getUserBiId = (req, res) => {
-  const id = req.params.userid;
-   
+
     db.query(` SELECT * FROM users;
     `,
-         [id], (err, result) => {
+         (err, result) => {
         if (err) return res.status(500).json(err);
         res.json(result);
     });

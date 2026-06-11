@@ -16,11 +16,7 @@ exports.login = (req, res) => {
 exports.getUserBiId = (req, res) => {
   const id = req.params.userid;
    
-    db.query(` SELECT posts.id, users.uuid ,users.username,users.profile,
-	COUNT(posts.id) AS posts_count
-        FROM posts
-        LEFT JOIN users  ON posts.user_id =  users.uuid 
-        WHERE users.uuid =?;
+    db.query(` SELECT * FROM users;
     `,
          [id], (err, result) => {
         if (err) return res.status(500).json(err);

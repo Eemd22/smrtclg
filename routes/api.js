@@ -15,6 +15,13 @@
  const alboumController = require("../controllers/alboum.controller");
  const channelController = require("../controllers/channel.controller");
   const lectureController = require("../controllers/lecture_contrroler");
+const timetableController = require("../controllers/timetable.controller");
+ const followController = require("../controllers/follow.controller");
+ const aiController = require("../controllers/ai.controller");
+   const boardLikeController = require("../controllers/board.likeController");
+   const activityLikeController = require("../controllers/activity.likeController");
+   const activityCommentController = require("../controllers/activity.commentController");
+  const channelActivityLikeController = require("../controllers/channelActivity.likeController");
 
 // اكواد رفع الملفات
  const upload = require("../middleware/users");
@@ -28,25 +35,37 @@
 
 
  module.exports = (io) => {
+    // مصادقة اختيارية: ترفق req.user عند وجود توكن صالح ولا تمنع أي طلب
+    router.use(require("../middleware/auth").optionalAuth);
+
+    // التحقق من ملكية المحتوى قبل الحذف/التعديل (المالك أو "مشرف")
+    const ownPost = require("../middleware/auth").verifyOwnership({ table: "posts", idColumn: "id", ownerColumn: "user_id", param: "id" });
+    const ownPostEdit = require("../middleware/auth").verifyOwnership({ table: "posts", idColumn: "id", ownerColumn: "user_id", param: "postid" });
+    const ownBoard = require("../middleware/auth").verifyOwnership({ table: "board", idColumn: "b_id", ownerColumn: "user_id", param: "b_id" });
+    const ownActivity = require("../middleware/auth").verifyOwnership({ table: "activites", idColumn: "id", ownerColumn: "user_id", param: "id" });
+
     // Route Posts مسارات توجيه جدول المنشورات
  router.get("/post", postController.getAllPosts);
  router.get("/post/:uid", (req, res) => postController.getAllPostsById(req,res,io));
  router.post("/post", post.single("image"), (req, res) => postController.addPost(req, res, io));
- router.put("/delete_post/:id", post.single("image"), (req, res) => postController.deletePost(req, res, io));
- router.put("/edit_post/:postid", (req, res) => postController.editPost(req, res, io));
+ router.put("/delete_post/:id", ownPost, post.single("image"), (req, res) => postController.deletePost(req, res, io));
+ router.put("/edit_post/:postid", ownPostEdit, (req, res) => postController.editPost(req, res, io));
 
 
     // Route Users مسارات توجيه جدول المستخدمين
  router.post("/get_user", userController.login);
  router.post("/add_user", (req, res) => userController.addUser(req, res, io));
  router.post("/profile/:userid", upload.single("image"),  (req, res) => userController.editProfile(req, res, io));
+ router.post("/cover/:userid", upload.single("image"),  (req, res) => userController.editCoverImage(req, res, io));
  router.get("/get_user_by_id/:userid",  (req, res) => userController.getUserBiId(req, res));
- router.get("/userid/:userid",  (req, res) => userController.getM(req, res));
 router.get("/get_allusers",  (req, res) => userController.getAllUser(req, res));
 router.get("/get_users_byid/:userid",  (req, res) => userController.getAllUserBYId(req, res));
 
 
- router.post("/change_role", (req, res) => userController.editRoleUser(req, res));
+ router.post("/change_role", require("../middleware/auth").requireRole("مشرف"), (req, res) => userController.editRoleUser(req, res, io));
+ router.put("/update_profile/:userid", (req, res) => userController.updateUserData(req, res, io));
+ router.post("/change_password/:userid", require("../middleware/auth").requireSelfOrAdmin("userid"), (req, res) => userController.changePassword(req, res));
+ router.post("/forgot_password", (req, res) => userController.forgotPassword(req, res, io));
 
        
 
@@ -71,8 +90,18 @@ router.get("/get_users_byid/:userid",  (req, res) => userController.getAllUserBY
 // Route   مسارات توجيه البورت الالكتروني
  router.get("/getBoard", (req, res) => boardController.getBoard(req, res, io));
  router.post("/addBoard", board.single("image"), (req, res) => boardController.addBoard(req, res, io));
- router.put("/delete_board/:b_id", board.single("image"), (req, res) => boardController.deleteBoard(req, res, io));
- router.put("/edit_board/:b_id", (req, res) => boardController.editBoard(req, res, io));
+ router.put("/delete_board/:b_id", ownBoard, board.single("image"), (req, res) => boardController.deleteBoard(req, res, io));
+ router.put("/edit_board/:b_id", ownBoard, (req, res) => boardController.editBoard(req, res, io));
+
+// Route Board Likes مسارات اعجابات البورد
+ router.post("/add_board_like", (req, res) => boardLikeController.addBoardLike(req, res, io));
+
+// Route Activity Likes مسارات اعجابات الانشطة
+ router.post("/add_activity_like", (req, res) => activityLikeController.addActivityLike(req, res, io));
+
+// Route Activity Comments مسارات تعليقات الانشطة
+ router.post("/add_activity_comment", (req, res) => activityCommentController.addActivityComment(req, res, io));
+ router.get("/get_activity_comments/:activityId", (req, res) => activityCommentController.getActivityComments(req, res));
 
     
 // leacture
@@ -93,8 +122,8 @@ router.get("/get_users_byid/:userid",  (req, res) => userController.getAllUserBY
 // getActivity مسارات التوجيه للانشطة
  router.get("/getActivity", (req, res) => activityController.getActivity(req,res,io));
  router.post("/add_activity", departments.single("image"), (req, res) => activityController.addActivity(req, res, io));
- router.put("/delete_activity/:id",  (req, res) => activityController.deleteActivity(req, res, io));
- router.put("/edit_activity/:id", (req, res) => activityController.editActivity(req, res, io));
+ router.put("/delete_activity/:id", ownActivity, (req, res) => activityController.deleteActivity(req, res, io));
+ router.put("/edit_activity/:id", ownActivity, (req, res) => activityController.editActivity(req, res, io));
 
  
  //  edit_activity
@@ -106,7 +135,8 @@ router.get("/get_users_byid/:userid",  (req, res) => userController.getAllUserBY
 // end add_abboum
 
 // مسارات التوجيه للفناة
- router.post("/add_channel", channel.single("image"), (req, res)=> channelController.addChannel(req,res,io));
+// اضافة مجتمع متاحة فقط للمشرف والمحاضر
+ router.post("/add_channel", require("../middleware/auth").requireRole("مشرف", "محاضر"), channel.single("image"), (req, res)=> channelController.addChannel(req,res,io));
  
  router.get("/get_channel",(req,res)=>channelController.getChannel(req,res));
 
@@ -123,8 +153,11 @@ router.get("/get_users_byid/:userid",  (req, res) => userController.getAllUserBY
 
 
 
-//  ############### اضافة محتوى في القناة  ############## 
+//  ############### اضافة محتوى في المجتمع  ############## 
  router.post("/add_channel_activity/", channelActivity.single("image"), (req, res)=> channelController.addChannelActivity(req,res,io));
+
+// Route Channel Activity Likes مسارات اعجابات محتوى المجتمع
+ router.post("/add_channel_activity_like", (req, res) => channelActivityLikeController.addChannelActivityLike(req, res, io));
  
  
  
@@ -144,12 +177,26 @@ router.get("/get_users_byid/:userid",  (req, res) => userController.getAllUserBY
  
  
  
- router.get("/get_channel_activity/:ch_id",  (req, res)=> channelController.getChannelActivity(req,res,io));
-  router.get("/lectures",  (req, res)=> lectureController.getlectures(req,res,io));
+  router.get("/get_channel_activity/:ch_id",  (req, res)=> channelController.getChannelActivity(req,res,io));
+  router.get("/lectures",  (req, res)=> timetableController.getlectures(req,res,io));
+  router.put("/lectures/:id/status", (req, res) => timetableController.updateLectureStatus(req, res, io));
+
+// Route Follow مسارات المتابعة
+ router.get("/check_follow", (req, res) => followController.checkFollow(req, res));
+ router.post("/follow", (req, res) => followController.follow(req, res, io));
+ router.post("/unfollow", (req, res) => followController.unfollow(req, res, io));
+ router.get("/follow_counts/:userid", (req, res) => followController.getFollowCounts(req, res));
 
 //  lecture 
-router.get("/get_lecture",  (req, res,io)=> lectureController.getLecture(req,res,io));
+router.get("/get_lecture",  (req, res)=> lectureController.getLecture(req,res));
 router.post("/upload_lecture/", lecture.single("file"), (req, res)=> lectureController.addLecture(req,res,io));
+
+// Route AI مسارات الذكاء الاصطناعي
+router.post("/ai/summarize", aiController.summarize);
+router.post("/ai/search", aiController.smartSearch);
+router.post("/ai/chat", aiController.chatbot);
+router.post("/ai/tags", aiController.suggestTags);
+
  return router;
 };
 

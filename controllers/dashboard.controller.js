@@ -26,13 +26,18 @@ exports.GetStatistic =  async(req, res) => {
     MostEngagedPost AS (
         SELECT 
             p.content AS top_post_title,
-            u.username AS top_post_author, -- هنا أضفنا اسم صاحب المنشور
+            u.username AS top_post_author,
             (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) AS top_post_comments,
             (SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id) AS top_post_alllikes,
-             (SELECT COUNT(*) FROM likes l WHERE l.reaction_type= "like" AND l.post_id = p.id) AS top_post_li,
-            (SELECT COUNT(*) FROM  likes l WHERE  l.reaction_type= "dislike" AND  l.post_id = p.id) AS top_post_dli,
+             (SELECT COUNT(*) FROM likes l WHERE l.reaction_type= 'like' AND l.post_id = p.id) AS top_post_li,
+            (SELECT COUNT(*) FROM  likes l WHERE  l.reaction_type= 'dislike' AND  l.post_id = p.id) AS top_post_dli,
              (SELECT SUM(reaction_type='like') FROM likes l WHERE l.post_id = p.id) AS top_post_likes,
-            (SELECT SUM(reaction_type='dislike') FROM likes l WHERE l.post_id = p.id) AS top_post_dislikes
+            (SELECT SUM(reaction_type='dislike') FROM likes l WHERE l.post_id = p.id) AS top_post_dislikes,
+            (SELECT SUM(reaction_type='love') FROM likes l WHERE l.post_id = p.id) AS top_post_love,
+            (SELECT SUM(reaction_type='haha') FROM likes l WHERE l.post_id = p.id) AS top_post_haha,
+            (SELECT SUM(reaction_type='wow') FROM likes l WHERE l.post_id = p.id) AS top_post_wow,
+            (SELECT SUM(reaction_type='sad') FROM likes l WHERE l.post_id = p.id) AS top_post_sad,
+            (SELECT SUM(reaction_type='angry') FROM likes l WHERE l.post_id = p.id) AS top_post_angry
         FROM posts p
         JOIN users u ON p.user_id = u.uuid -- ربط جدول المنشورات بالمستخدمين
         ORDER BY (top_post_comments + top_post_likes) DESC

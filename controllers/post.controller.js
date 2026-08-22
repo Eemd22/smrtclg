@@ -1,41 +1,52 @@
 const db = require("../config/db");
-const {v4: uuid} = require('uuid');
-const id = uuid();
 // *********************** دالة جلب المنشورات *****************************
 exports.getAllPosts = (req, res) => {
+    const userId = req.query.user_id || null;
     const sql = `
         SELECT p.id,
     p.content,
     p.created_at,
-     p.user_id ,
+    p.user_id,
     p.image,
     u.username,
     u.profile,
     u.roles,
-   
-
     COALESCE(c.comments_count, 0) AS comments_count,
     COALESCE(l.likes_count, 0) AS likes_count,
-    COALESCE(l.dislikes_count, 0) AS dislikes_count
-    
-FROM posts p 
-LEFT JOIN users u ON u.uuid = p.user_id 
+    COALESCE(l.dislikes_count, 0) AS dislikes_count,
+    COALESCE(l.love_count, 0) AS love_count,
+    COALESCE(l.haha_count, 0) AS haha_count,
+    COALESCE(l.wow_count, 0) AS wow_count,
+    COALESCE(l.sad_count, 0) AS sad_count,
+    COALESCE(l.angry_count, 0) AS angry_count,
+    (
+        SELECT reaction_type FROM likes
+        WHERE post_id = p.id AND user_id = ?
+        LIMIT 1
+    ) AS user_reaction
+FROM posts p
+LEFT JOIN users u ON u.uuid = p.user_id
 LEFT JOIN (
     SELECT post_id, COUNT(*) AS comments_count
     FROM comments
-    GROUP BY post_id  
-) c ON c.post_id = p.id  
+    GROUP BY post_id
+) c ON c.post_id = p.id
 LEFT JOIN (
-    SELECT 
+    SELECT
         post_id,
-        COUNT(CASE WHEN reaction_type = 'Like' THEN 1 END) AS likes_count,
-        COUNT(CASE WHEN reaction_type = 'Dislike' THEN 1 END) AS dislikes_count
+        COUNT(CASE WHEN reaction_type = 'like' THEN 1 END) AS likes_count,
+        COUNT(CASE WHEN reaction_type = 'dislike' THEN 1 END) AS dislikes_count,
+        COUNT(CASE WHEN reaction_type = 'love' THEN 1 END) AS love_count,
+        COUNT(CASE WHEN reaction_type = 'haha' THEN 1 END) AS haha_count,
+        COUNT(CASE WHEN reaction_type = 'wow' THEN 1 END) AS wow_count,
+        COUNT(CASE WHEN reaction_type = 'sad' THEN 1 END) AS sad_count,
+        COUNT(CASE WHEN reaction_type = 'angry' THEN 1 END) AS angry_count
     FROM likes
-    GROUP BY post_id 
+    GROUP BY post_id
 ) l ON l.post_id = p.id
 ORDER BY p.created_at DESC;
     `;
-    db.query(sql, (err, result) => {
+    db.query(sql, [userId], (err, result) => {
         if (err) return res.status(500).json(err);
           
         res.json(result);
@@ -88,10 +99,9 @@ exports.addPost = (req, res, io) => {
 
 exports.deletePost =  (req, res,io) => {
   const id = req.params.id;
-const {userid} = req.body;
   db.query(
-    "DELETE FROM posts WHERE id=? AND user_id=?",
-    [id,userid],
+    "DELETE FROM posts WHERE id=?",
+    [id],
     (err, result) => {
       if (err) return res.status(500).json(err);
 
@@ -105,12 +115,12 @@ const {userid} = req.body;
 
 exports.editPost =  (req, res,io) => {
   const postid = req.params.postid;
- 
-  const {content,userid } = req.body;
+  
+  const {content} = req.body;
 
   db.query(
-    "UPDATE posts SET content=? WHERE id=? AND user_id=?",
-    [content,postid,userid],
+    "UPDATE posts SET content=? WHERE id=?",
+    [content,postid],
     (err, result) => {
       if (err) return res.status(500).json(err);
 

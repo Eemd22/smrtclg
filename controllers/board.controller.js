@@ -3,13 +3,41 @@
 const db = require("../config/db");
 
 exports.getBoard = (req, res,io) => {
+    const userId = req.query.user_id || null;
     const sql = `
-        SELECT *
+        SELECT board.*,
+        users.username,
+        users.profile,
+        users.roles,
+        COALESCE(bl.likes_count, 0) AS likes_count,
+        COALESCE(bl.dislikes_count, 0) AS dislikes_count,
+        COALESCE(bl.love_count, 0) AS love_count,
+        COALESCE(bl.haha_count, 0) AS haha_count,
+        COALESCE(bl.wow_count, 0) AS wow_count,
+        COALESCE(bl.sad_count, 0) AS sad_count,
+        COALESCE(bl.angry_count, 0) AS angry_count,
+        (
+            SELECT reaction_type FROM board_likes
+            WHERE b_id = board.b_id AND user_id = ?
+            LIMIT 1
+        ) AS user_reaction
         FROM board
         JOIN users ON board.user_id = users.uuid
-        
+        LEFT JOIN (
+            SELECT 
+                b_id,
+                COUNT(CASE WHEN reaction_type = 'like' THEN 1 END) AS likes_count,
+                COUNT(CASE WHEN reaction_type = 'dislike' THEN 1 END) AS dislikes_count,
+                COUNT(CASE WHEN reaction_type = 'love' THEN 1 END) AS love_count,
+                COUNT(CASE WHEN reaction_type = 'haha' THEN 1 END) AS haha_count,
+                COUNT(CASE WHEN reaction_type = 'wow' THEN 1 END) AS wow_count,
+                COUNT(CASE WHEN reaction_type = 'sad' THEN 1 END) AS sad_count,
+                COUNT(CASE WHEN reaction_type = 'angry' THEN 1 END) AS angry_count
+            FROM board_likes
+            GROUP BY b_id
+        ) bl ON bl.b_id = board.b_id
         ORDER BY board.created_at DESC `;
-    db.query(sql, (err, result) => {
+    db.query(sql, [userId], (err, result) => {
         if (err) return res.status(500).json(err);
         io.emit("dataBoard"); 
         res.json(result);
@@ -40,10 +68,9 @@ exports.addBoard= (req, res, io) => {
 
 exports.deleteBoard =  (req, res,io) => {
   const id = req.params.b_id;
-const {userid} = req.body;
   db.query(
-    "DELETE FROM board WHERE b_id=? AND user_id=?",
-    [id,userid],
+    "DELETE FROM board WHERE b_id=?",
+    [id],
     (err, result) => {
       if (err) return res.status(500).json(err);
 
@@ -61,12 +88,12 @@ const {userid} = req.body;
 // code edit table board by user_id and b_id
 exports.editBoard =  (req, res,io) => {
   const b_id = req.params.b_id;
- 
-  const {content,userid } = req.body;
+  
+  const {content} = req.body;
 
   db.query(
-    "UPDATE board SET content=? WHERE b_id=? AND user_id=?",
-    [content,b_id,userid],
+    "UPDATE board SET content=? WHERE b_id=?",
+    [content,b_id],
     (err, result) => {
       if (err) return res.status(500).json(err);
 

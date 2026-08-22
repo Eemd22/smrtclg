@@ -1,45 +1,54 @@
 
+require("dotenv").config();
+
 const express = require("express");
 const http = require("http");
 const cors = require("cors");
-const { Server } = require("socket.io");
+const compression = require("compression");
+const fs = require("fs");
 const path = require("path");
-const {v4: uuid} = require('uuid');
-const id = uuid();
+const { Server } = require("socket.io");
+
+["users", "posts", "boards", "departments", "alboum", "channel", "channelActivity", "lecture"].forEach((dir) => {
+    fs.mkdirSync(path.join(__dirname, dir, "uploads"), { recursive: true });
+});
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(compression());
+app.use(express.json({ limit: "10mb" }));
 
 const PORT = process.env.PORT || 3000;
 
-// اكواد السماح للتطبيق بالكتابة داخل الملفات
-app.use("/users/uploads", express.static("users/uploads"));
-app.use("/posts/uploads", express.static("posts/uploads"));
-app.use("/boards/uploads", express.static("boards/uploads"));
-app.use("/departments/uploads", express.static("departments/uploads"));
-app.use("/alboum/uploads", express.static("alboum/uploads"));
-app.use("/channel/uploads", express.static("channel/uploads"));
-app.use("/channelActivity/uploads", express.static("channelActivity/uploads"));
-app.use("/lecture/uploads", express.static("lecture/uploads"));
+app.get("/health", (req, res) => res.json({ status: "ok", uptime: process.uptime() }));
+
+// Static file serving with caching
+const cacheOptions = { maxAge: '7d', etag: true, lastModified: true };
+app.use("/users/uploads", express.static("users/uploads", cacheOptions));
+app.use("/posts/uploads", express.static("posts/uploads", cacheOptions));
+app.use("/boards/uploads", express.static("boards/uploads", cacheOptions));
+app.use("/departments/uploads", express.static("departments/uploads", cacheOptions));
+app.use("/alboum/uploads", express.static("alboum/uploads", cacheOptions));
+app.use("/channel/uploads", express.static("channel/uploads", cacheOptions));
+app.use("/channelActivity/uploads", express.static("channelActivity/uploads", cacheOptions));
+app.use("/lecture/uploads", express.static("lecture/uploads", cacheOptions));
 
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: { origin: "*" }
+    cors: { origin: "*" },
+    transports: ["websocket"],
+    pingTimeout: 60000,
+    pingInterval: 25000
 });
 
-// إعداد السوكيت
 io.on("connection", (socket) => {
-    console.log("User connected");
+    socket.on("disconnect", () => {});
 });
 
-
-
-// استدعاء الراوت وتمرير io له
 const apiRoutes = require("./routes/api")(io);
 app.use("/", apiRoutes);
 
 server.listen(PORT, () => {
-    console.log("Server running on port 3000");
+    console.log(`Server running on port ${PORT}`);
 });
 

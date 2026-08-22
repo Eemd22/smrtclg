@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS activity_comments (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  activity_id INT NOT NULL,
+  user_id VARCHAR(36) NOT NULL,
+  comment TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (activity_id) REFERENCES activites(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(uuid) ON DELETE CASCADE
+);

@@ -2,16 +2,12 @@ const db = require("../config/db");
 
 
 exports.getAlboum = (req, res,io) => {
-   const id = req.params.userid;
-   
-    db.query(` SELECT * FROM aboums
-        
+    db.query(` SELECT * FROM albums
     `,
-         [id], (err, result) => {
+         (err, result) => {
         if (err) return res.status(500).json(err);
-         
+
         res.json(result);
-         io.emit("dataChange");
     });
 };
 
@@ -24,10 +20,11 @@ exports.addAlboum = (req, res, io) => {
     const image = req.file ? `alboum/uploads/${req.file.filename}` : null;
     console.log(deptid);
    
-    const sql = 'INSERT INTO aboums (image, dept_id, user_id) VALUES (?,?,?)';
+    const sql = 'INSERT INTO albums (image, dept_id, user_id) VALUES (?,?,?)';
    db.query(sql, [ image,deptid,userid], (err, result) => {
         if (err) return res.status(500).json(err);
-        // io.emit("dataChanged");
+
+        io.emit("dataChanged");
 
         res.json({ message: "added" });
     });

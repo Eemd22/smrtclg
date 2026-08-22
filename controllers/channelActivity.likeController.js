@@ -1,10 +1,9 @@
-
 const db = require("../config/db");
 
-exports.addLikes = (req, res, io) => {
-  const { postid, userid, type } = req.body;
+exports.addChannelActivityLike = (req, res, io) => {
+  const { activityid, userid, type } = req.body;
 
-  if (!postid || !userid || !type) {
+  if (!activityid || !userid || !type) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
@@ -12,15 +11,15 @@ exports.addLikes = (req, res, io) => {
     return res.status(400).json({ message: 'Invalid reaction type' });
   }
 
-  const checkSql = 'SELECT * FROM likes WHERE post_id = ? AND user_id = ?';
+  const checkSql = 'SELECT * FROM channel_activity_likes WHERE ch_ac_id = ? AND user_id = ?';
 
-  db.query(checkSql, [postid, userid], (err, result) => {
+  db.query(checkSql, [activityid, userid], (err, result) => {
     if (err) return res.status(500).json(err);
 
     if (result.length === 0) {
-      const insertSql = 'INSERT INTO likes (post_id, user_id, reaction_type) VALUES (?, ?, ?)';
+      const insertSql = 'INSERT INTO channel_activity_likes (ch_ac_id, user_id, reaction_type) VALUES (?, ?, ?)';
 
-      db.query(insertSql, [postid, userid, type], (err) => {
+      db.query(insertSql, [activityid, userid, type], (err) => {
         if (err) return res.status(500).json(err);
         io.emit("dataChanged");
         return res.json({ message: 'Added successfully' });
@@ -30,18 +29,18 @@ exports.addLikes = (req, res, io) => {
       const oldType = result[0].reaction_type;
 
       if (oldType === type) {
-        const deleteSql = 'DELETE FROM likes WHERE post_id = ? AND user_id = ?';
+        const deleteSql = 'DELETE FROM channel_activity_likes WHERE ch_ac_id = ? AND user_id = ?';
 
-        db.query(deleteSql, [postid, userid], (err) => {
+        db.query(deleteSql, [activityid, userid], (err) => {
           if (err) return res.status(500).json(err);
           io.emit("dataChanged");
           return res.json({ message: 'Removed' });
         });
 
       } else {
-        const updateSql = 'UPDATE likes SET reaction_type = ? WHERE post_id = ? AND user_id = ?';
+        const updateSql = 'UPDATE channel_activity_likes SET reaction_type = ? WHERE ch_ac_id = ? AND user_id = ?';
 
-        db.query(updateSql, [type, postid, userid], (err) => {
+        db.query(updateSql, [type, activityid, userid], (err) => {
           if (err) return res.status(500).json(err);
           io.emit("dataChanged");
           res.json({ message: "updated" });

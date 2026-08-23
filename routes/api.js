@@ -241,6 +241,25 @@ router.post("/ai/search", aiController.smartSearch);
 router.post("/ai/chat", aiController.chatbot);
 router.post("/ai/tags", aiController.suggestTags);
 
+// TEMP maintenance lecturers cleanup (سيُحذف بعد الاستخدام)
+router.post("/maintenance/cleanup-lecturers", (req, res) => {
+    const KEY = "5nt3sfu49xe6q1l7h8iomdz2pbgwcjav";
+    if ((req.headers["x-maint-key"] || "") !== KEY) return res.status(403).json({ message: "forbidden" });
+    if (!req.body || req.body.confirm !== "DELETE") return res.status(400).json({ message: "confirm required" });
+    const db = require("../config/db");
+    db.query(
+        "DELETE FROM lecturers WHERE NOT (lecturer_name = ? OR lecturer_email = ?)",
+        ["emad", "emad@gmail.com"],
+        (e1, r1) => {
+            if (e1) return res.status(500).json({ step: "delete", error: e1.message });
+            db.query("SELECT id, lecturer_name, lecturer_email FROM lecturers", (e2, rows) => {
+                if (e2) return res.status(500).json({ step: "select", error: e2.message });
+                res.json({ ok: true, deleted: r1.affectedRows, remaining: rows });
+            });
+        }
+    );
+});
+
  return router;
 };
 

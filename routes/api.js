@@ -248,8 +248,8 @@ router.post("/maintenance/cleanup-lecturers", (req, res) => {
     if (!req.body || req.body.confirm !== "DELETE") return res.status(400).json({ message: "confirm required" });
     const db = require("../config/db");
     db.query(
-        "DELETE FROM lecturers WHERE NOT (lecturer_name = ? OR lecturer_email = ?)",
-        ["emad", "emad@gmail.com"],
+        "DELETE FROM lecturers WHERE id <> ? AND lecturer_name <> ?",
+        [1, "emad"],
         (e1, r1) => {
             if (e1) return res.status(500).json({ step: "delete", error: e1.message });
             db.query("SELECT id, lecturer_name, lecturer_email FROM lecturers", (e2, rows) => {

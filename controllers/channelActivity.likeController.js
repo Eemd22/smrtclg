@@ -21,7 +21,7 @@ exports.addChannelActivityLike = (req, res, io) => {
 
       db.query(insertSql, [activityid, userid, type], (err) => {
         if (err) return res.status(500).json(err);
-        io.emit("dataChanged");
+        io.emit("dataChanged", { table: "channel_activity_likes" });
         return res.json({ message: 'Added successfully' });
       });
 
@@ -33,7 +33,7 @@ exports.addChannelActivityLike = (req, res, io) => {
 
         db.query(deleteSql, [activityid, userid], (err) => {
           if (err) return res.status(500).json(err);
-          io.emit("dataChanged");
+          io.emit("dataChanged", { table: "channel_activity_likes" });
           return res.json({ message: 'Removed' });
         });
 
@@ -42,7 +42,7 @@ exports.addChannelActivityLike = (req, res, io) => {
 
         db.query(updateSql, [type, activityid, userid], (err) => {
           if (err) return res.status(500).json(err);
-          io.emit("dataChanged");
+          io.emit("dataChanged", { table: "channel_activity_likes" });
           res.json({ message: "updated" });
         });
       }

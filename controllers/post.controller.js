@@ -90,7 +90,7 @@ exports.addPost = (req, res, io) => {
     const sql = "INSERT INTO posts (user_id, content, image) VALUES (?, ?, ?)";
     db.query(sql, [user_id, content, image], (err, result) => {
         if (err) return res.status(500).send(err);
-        io.emit("dataChanged");
+        io.emit("dataChanged", { table: "posts" });
         res.json({ "message": "added" });
     });
 }
@@ -105,7 +105,7 @@ exports.deletePost =  (req, res,io) => {
     (err, result) => {
       if (err) return res.status(500).json(err);
 
-      io.emit("dataChanged");
+      io.emit("dataChanged", { table: "posts" });
       res.json({ "message": "deleted" });
     }
   );
@@ -124,7 +124,7 @@ exports.editPost =  (req, res,io) => {
     (err, result) => {
       if (err) return res.status(500).json(err);
 
-      io.emit("dataChanged");
+      io.emit("dataChanged", { table: "posts" });
       
       res.json({ message: "updated" });
     }

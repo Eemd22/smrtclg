@@ -110,7 +110,7 @@ exports.addUser = (req, res, io) => {
     const sql = "INSERT INTO users (uuid, username, email, password) VALUES (?, ?, ?, ?)";
     db.query(sql, [uuuid, username, email, bcrypt.hashSync(password, 10)], (err, result) => {
         if (err) return res.status(500).json(err);
-        io.emit("dataChanged");
+        io.emit("dataChanged", { table: "users" });
         res.json({ message: "added", "uuid": uuuid });
     });
 };
@@ -127,7 +127,7 @@ exports.deleteUser = (req, res, io) => {
     const { id } = req.params;
     db.query("DELETE FROM users WHERE id=?", [id], (err, result) => {
         if (err) return res.status(500).json(err);
-        io.emit("dataChanged");
+        io.emit("dataChanged", { table: "users" });
         res.json({ message: "deleted" });
     });
 };
@@ -141,7 +141,7 @@ exports.editProfile = (req, res, io) => {
     
     db.query("UPDATE users SET profile=? WHERE uuid=?", [profile, userid], (err, result) => {
         if (err) return res.status(500).send(err);
-        io.emit("dataChanged");
+        io.emit("dataChanged", { table: "users" });
         res.json({ message: "updated", profile: profile });
     });
 };
@@ -157,7 +157,7 @@ exports.updateUserData = (req, res, io) => {
 
     db.query("UPDATE users SET username=?, email=? WHERE uuid=?", [username, email, userid], (err, result) => {
         if (err) return res.status(500).json(err);
-        io.emit("dataChanged");
+        io.emit("dataChanged", { table: "users" });
         res.json({ message: "updated" });
     });
 };
@@ -177,14 +177,14 @@ exports.forgotPassword = async (req, res, io) => {
         }
         db.query("UPDATE users SET password=? WHERE uuid=?", [await bcrypt.hash(newPassword, 10), result[0].uuid], (err2) => {
             if (err2) return res.status(500).json(err2);
-            io.emit("dataChanged");
+            io.emit("dataChanged", { table: "users" });
             res.json({ message: "password updated" });
         });
     });
 };
 
 // دالة تغيير كلمة المرور
-exports.changePassword = async (req, res) => {
+exports.changePassword = async (req, res, io) => {
     const userid = req.params.userid;
     const { oldPassword, newPassword } = req.body;
 
@@ -206,6 +206,7 @@ exports.changePassword = async (req, res) => {
         }
         db.query("UPDATE users SET password=? WHERE uuid=?", [await bcrypt.hash(newPassword, 10), userid], (err2, result2) => {
             if (err2) return res.status(500).json(err2);
+            io.emit("dataChanged", { table: "users" });
             res.json({ message: "password updated" });
         });
     });
@@ -230,7 +231,7 @@ exports.editRoleUser = (req, res, io) => {
       if (result.affectedRows === 0) {
         return res.status(404).json({ message: "المستخدم غير موجود" });
       }
-      io.emit("dataChanged");
+      io.emit("dataChanged", { table: "users" });
       res.json({ message: "updated" });
     }
   );
@@ -244,7 +245,7 @@ exports.editCoverImage = (req, res, io) => {
 
     db.query("UPDATE users SET cover_image=? WHERE uuid=?", [cover_image, userid], (err, result) => {
         if (err) return res.status(500).send(err);
-        io.emit("dataChanged");
+        io.emit("dataChanged", { table: "users" });
         res.json({ message: "updated", cover_image: cover_image });
     });
 };

@@ -50,7 +50,7 @@ exports.addActivity = (req, res, io) => {
     const sql = 'INSERT INTO activites (activity, user_id, image, dept_id) VALUES (?,?,?,?)';
    db.query(sql, [activity, user_id, image,dept_id], (err, result) => {
         if (err) return res.status(500).json(err);
-        io.emit("dataChanged");
+        io.emit("dataChanged", { table: "activites" });
       
         res.json({ message: "added" });
     });
@@ -66,7 +66,7 @@ exports.deleteActivity =  (req, res,io) => {
     (err, result) => {
       if (err) return res.status(500).json(err);
 
-      io.emit("dataChanged");
+      io.emit("dataChanged", { table: "activites" });
       console.log("................................gggggggggggggggggggg");
       res.json({ "message": "deleted" });
     }
@@ -92,7 +92,7 @@ exports.editActivity =  (req, res,io) => {
     (err, result) => {
       if (err) return res.status(500).json(err);
 
-      io.emit("dataChanged");
+      io.emit("dataChanged", { table: "activites" });
       
       res.json({ message: "updated" });
     }

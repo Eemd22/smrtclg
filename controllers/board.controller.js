@@ -62,7 +62,7 @@ exports.addBoard= (req, res, io) => {
         console.log(result);
     
         res.json({ message: "added" });
-          io.emit("dataChanged"); 
+          io.emit("dataChanged", { table: "board" }); 
     
     }
 )}
@@ -78,7 +78,7 @@ exports.deleteBoard =  (req, res,io) => {
     (err, result) => {
       if (err) return res.status(500).json(err);
 
-      io.emit("dataChanged");
+      io.emit("dataChanged", { table: "board" });
 
       res.json({ "message": "deleted" });
 
@@ -101,7 +101,7 @@ exports.editBoard =  (req, res,io) => {
     (err, result) => {
       if (err) return res.status(500).json(err);
 
-      io.emit("dataChanged");
+      io.emit("dataChanged", { table: "board" });
       
       res.json({ message: "updated" });
     }

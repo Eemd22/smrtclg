@@ -22,7 +22,7 @@ exports.addLikes = (req, res, io) => {
 
       db.query(insertSql, [postid, userid, type], (err) => {
         if (err) return res.status(500).json(err);
-        io.emit("dataChanged");
+        io.emit("dataChanged", { table: "likes" });
         return res.json({ message: 'Added successfully' });
       });
 
@@ -34,7 +34,7 @@ exports.addLikes = (req, res, io) => {
 
         db.query(deleteSql, [postid, userid], (err) => {
           if (err) return res.status(500).json(err);
-          io.emit("dataChanged");
+          io.emit("dataChanged", { table: "likes" });
           return res.json({ message: 'Removed' });
         });
 
@@ -43,7 +43,7 @@ exports.addLikes = (req, res, io) => {
 
         db.query(updateSql, [type, postid, userid], (err) => {
           if (err) return res.status(500).json(err);
-          io.emit("dataChanged");
+          io.emit("dataChanged", { table: "likes" });
           res.json({ message: "updated" });
         });
       }

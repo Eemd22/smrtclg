@@ -100,6 +100,8 @@ exports.addBoardComment = (req, res, io) => {
         (err2, rows) => {
           if (!err2 && io && rows && rows.length > 0) {
             io.emit("board_comment", { ...rows[0] });
+            // بث فوري لكل العملاء عند تغيير قاعدة البيانات
+            io.emit("dataChanged", { table: "board_comments" });
           }
           res.json({ message: "added", insertId: result.insertId });
         }

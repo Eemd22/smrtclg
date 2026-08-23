@@ -21,7 +21,7 @@ exports.addBoardLike = (req, res, io) => {
 
       db.query(insertSql, [boardid, userid, type], (err) => {
         if (err) return res.status(500).json(err);
-        io.emit("dataChanged");
+        io.emit("dataChanged", { table: "board_likes" });
         return res.json({ message: 'Added successfully' });
       });
 
@@ -33,7 +33,7 @@ exports.addBoardLike = (req, res, io) => {
 
         db.query(deleteSql, [boardid, userid], (err) => {
           if (err) return res.status(500).json(err);
-          io.emit("dataChanged");
+          io.emit("dataChanged", { table: "board_likes" });
           return res.json({ message: 'Removed' });
         });
 
@@ -42,7 +42,7 @@ exports.addBoardLike = (req, res, io) => {
 
         db.query(updateSql, [type, boardid, userid], (err) => {
           if (err) return res.status(500).json(err);
-          io.emit("dataChanged");
+          io.emit("dataChanged", { table: "board_likes" });
           res.json({ message: "updated" });
         });
       }

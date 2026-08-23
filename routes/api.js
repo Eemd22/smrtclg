@@ -65,7 +65,7 @@ router.get("/get_users_byid/:userid",  (req, res) => userController.getAllUserBY
 
  router.post("/change_role", require("../middleware/auth").requireRole("مشرف"), (req, res) => userController.editRoleUser(req, res, io));
  router.put("/update_profile/:userid", (req, res) => userController.updateUserData(req, res, io));
- router.post("/change_password/:userid", require("../middleware/auth").requireSelfOrAdmin("userid"), (req, res) => userController.changePassword(req, res));
+ router.post("/change_password/:userid", require("../middleware/auth").requireSelfOrAdmin("userid"), (req, res) => userController.changePassword(req, res, io));
  router.post("/forgot_password", (req, res) => userController.forgotPassword(req, res, io));
 
        
@@ -73,6 +73,7 @@ router.get("/get_users_byid/:userid",  (req, res) => userController.getAllUserBY
 // Route Comment مسارات اتوجيه التعاليق
 
  router.post("/add_comment", (req, res) => commentController.addComment(req, res, io));
+ router.get("/get_post_comments/:post_id", (req, res) => commentController.getPostComments(req, res));
 
    
   

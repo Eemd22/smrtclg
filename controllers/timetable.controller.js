@@ -123,7 +123,7 @@ exports.updateLectureStatus = (req, res, io) => {
     [status, id],
     (err, result) => {
       if (err) return res.status(500).json(err);
-      io.emit("dataChanged");
+      io.emit("dataChanged", { table: "lectures" });
       res.json({ message: "Status updated", status });
     }
   );

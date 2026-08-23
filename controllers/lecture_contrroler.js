@@ -39,7 +39,7 @@ exports.addLecture = (req, res, io) => {
             if (err) {
                 return res.status(500).json(err);
             }
-            io.emit("dataChanged");
+            io.emit("dataChanged", { table: "lecture" });
             res.json({
                 success: true,
                 file: savedFileName,

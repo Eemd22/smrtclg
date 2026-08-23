@@ -13,6 +13,8 @@ exports.addActivityComment = (req, res, io) => {
     (err, result) => {
       if (err) return res.status(500).json(err);
 
+      // بث فوري لكل العملاء عند تغيير قاعدة البيانات
+      if (io) io.emit("dataChanged", { table: "activity_comments", activityId: Number(activityid) });
       res.json({ message: "added", insertId: result.insertId });
     }
   );

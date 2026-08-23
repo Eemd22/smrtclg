@@ -24,7 +24,7 @@ exports.addAlboum = (req, res, io) => {
    db.query(sql, [ image,deptid,userid], (err, result) => {
         if (err) return res.status(500).json(err);
 
-        io.emit("dataChanged");
+        io.emit("dataChanged", { table: "albums" });
 
         res.json({ message: "added" });
     });

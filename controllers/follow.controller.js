@@ -45,7 +45,7 @@ exports.follow = (req, res, io) => {
                 [follower_id, following_id],
                 (err2) => {
                     if (err2) return res.status(500).json(err2);
-                    io.emit("dataChanged");
+                    io.emit("dataChanged", { table: "followers" });
                     res.json({ message: "Followed" });
                 }
             );
@@ -66,7 +66,7 @@ exports.unfollow = (req, res, io) => {
         [follower_id, following_id],
         (err, result) => {
             if (err) return res.status(500).json(err);
-            io.emit("dataChanged");
+            io.emit("dataChanged", { table: "followers" });
             res.json({ message: "Unfollowed" });
         }
     );

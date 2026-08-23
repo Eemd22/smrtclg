@@ -2,6 +2,7 @@ const db = require("../config/db");
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
 async function callOpenAI(messages, maxTokens = 500) {
   if (!OPENAI_API_KEY) {
@@ -15,7 +16,7 @@ async function callOpenAI(messages, maxTokens = 500) {
       Authorization: `Bearer ${OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "gpt-4o-mini",
+      model: OPENAI_MODEL,
       messages,
       max_tokens: maxTokens,
       temperature: 0.7,

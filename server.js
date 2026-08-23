@@ -196,6 +196,10 @@ db.query("SELECT lec_id, lec_title, lec_url FROM lecture", (err, rows) => {
     });
 });
 
+// إصلاح النصوص العربية المخزنة كرموز (mojibake) في جداول الجدول الدراسي
+// (مقررات، قاعات، محاضرون، سنوات، مجموعات، عناوين المحاضرات، أقسام) - idempotent
+require("./scripts/fix-timetable-mojibake")(db);
+
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

@@ -1,8 +1,9 @@
 const db = require("../config/db");
 
 // ضمان وجود جدول تعليقات البورد عند إقلاع الخادم
-db.query(
-  `CREATE TABLE IF NOT EXISTS board_comments (
+// نحاول مع مفاتيح أجنبية، وإن فشل (اختلاف ترميز/نوع الأعمدة في القاعدة السحابية) ننشئه بدونها
+const createWithFk = `
+  CREATE TABLE IF NOT EXISTS board_comments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     b_id INT NOT NULL,
     user_id VARCHAR(36) NOT NULL,
@@ -10,11 +11,25 @@ db.query(
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (b_id) REFERENCES board(b_id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(uuid) ON DELETE CASCADE
-  )`,
-  (err) => {
-    if (err) console.error("board_comments table init error:", err.message);
-  }
-);
+  )`;
+const createWithoutFk = `
+  CREATE TABLE IF NOT EXISTS board_comments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    b_id INT NOT NULL,
+    user_id VARCHAR(36) NOT NULL,
+    comment TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_board_comments_b_id (b_id),
+    INDEX idx_board_comments_user_id (user_id)
+  )`;
+
+db.query(createWithFk, (err) => {
+  if (!err) return;
+  console.error("board_comments table init (with FK) error:", err.message);
+  db.query(createWithoutFk, (err2) => {
+    if (err2) console.error("board_comments table init error:", err2.message);
+  });
+});
 
 exports.addBoardComment = (req, res, io) => {
   const { userid, comment } = req.body;

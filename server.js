@@ -117,6 +117,18 @@ userCascadeTables.forEach(([table, column]) => {
     );
 });
 
+// ترقية أول مشرف تلقائياً إذا لم يوجد أي مشرف في قاعدة البيانات (bootstrap)
+const BOOTSTRAP_ADMIN_EMAIL = process.env.BOOTSTRAP_ADMIN_EMAIL || "emad@gmail.com";
+db.query("SELECT COUNT(*) AS c FROM users WHERE roles = ?", ["مشرف"], (bErr, bRows) => {
+    if (bErr) return console.error("Bootstrap admin check failed:", bErr.message);
+    if (bRows[0].c > 0) return;
+    db.query("UPDATE users SET roles = ? WHERE email = ?", ["مشرف", BOOTSTRAP_ADMIN_EMAIL], (uErr, uRes) => {
+        if (uErr) return console.error("Bootstrap admin failed:", uErr.message);
+        if (uRes.affectedRows > 0) console.log(`Bootstrap admin promoted: ${BOOTSTRAP_ADMIN_EMAIL}`);
+        else console.log(`Bootstrap admin: no user with email ${BOOTSTRAP_ADMIN_EMAIL}`);
+    });
+});
+
 // تنظيف الأقسام: حذف الأقسام المكررة/التالفة والاحتفاظ بالأقسام الرسمية فقط
 // 1 نظم معلومات المكتبات، 2 نظم معلومات المحاسبية، 3 نظم معلومات الادارية
 // 4 هندسة البرمجيات، 5 علوم الحاسوب، 6 تقانة المعلومات

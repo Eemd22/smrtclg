@@ -31,20 +31,26 @@
 
 > ⚠️ Aiven يتطلب SSL — يجب ضبط `MYSQL_SSL=true` (ملف render.yaml يفعّلها تلقائياً).
 
-### استيراد جداولك الحالية من جهازك
+### استيراد جداولك الحالية من جهازك (سكربت جاهز)
+
+لا تحتاج mysqldump — يوجد سكربت نقل مدمج في المشروع:
 
 ```bash
-# صدّر قاعدتك المحلية (من جهازك)
-mysqldump -u root -p smart_college > dump.sql --no-tablespaces --column-statistics=0
+# 1) صدّر قاعدتك المحلية (يعمل بدون إعدادات، يستهدف localhost/smart_college)
+npm run db:export
 
-# ثم استوردها إلى القاعدة السحابية (استخدم البيانات من Aiven)
-mysql -h <MYSQL_HOST> -P <PORT> -u avnadmin -p \
-  --ssl-mode=REQUIRED smart_college < dump.sql
+# 2) اضبط بيانات القاعدة السحابية ثم استوردها
+$env:MYSQL_HOST="<من Aiven>"
+$env:MYSQL_PORT="3306"
+$env:MYSQL_USER="avnadmin"
+$env:MYSQL_PASSWORD="<كلمة مرور Aiven>"
+$env:MYSQL_DATABASE="smart_college"
+$env:MYSQL_SSL="true"
+npm run db:import
 ```
 
-أو استخدم أداة رسومية مثل **HeidiSQL / DBeaver / MySQL Workbench** للاتصال بالقاعدة السحابية واستيراد الـ dump.
-
-> ملفات الهجرة الموجودة في مجلد `sql/` تُنفَّذ أيضاً بنفس الطريقة إذا لم تكن مطبقة في الـ dump.
+> السكربت يحذف الجداول الموجودة في الوجهة وينشئها من جديد. لمنع الحذف أضف `--no-drop`.
+> ملف `db-dump.json` الناتج محمي في `.gitignore` ولا يُرفع للمستودع.
 
 ---
 

@@ -13,7 +13,6 @@ exports.addActivityComment = (req, res, io) => {
     (err, result) => {
       if (err) return res.status(500).json(err);
 
-      io.emit("dataChanged");
       res.json({ message: "added", insertId: result.insertId });
     }
   );

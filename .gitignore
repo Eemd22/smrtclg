@@ -10,3 +10,4 @@ channel/uploads/
 channelActivity/uploads/
 lecture/uploads/
 *.log
+db-dump.json

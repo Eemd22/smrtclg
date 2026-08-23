@@ -142,6 +142,7 @@ router.put("/lectures/:id", require("../middleware/auth").requireRole("مشرف"
 router.delete("/lectures/:id", require("../middleware/auth").requireRole("مشرف", "محاضر"), (req, res) => timetableController.deleteLecture(req, res, io));
 router.post("/courses", require("../middleware/auth").requireRole("مشرف", "محاضر"), (req, res) => timetableController.addCourse(req, res, io));
 router.post("/halls", require("../middleware/auth").requireRole("مشرف", "محاضر"), (req, res) => timetableController.addHall(req, res, io));
+router.post("/lecturers", require("../middleware/auth").requireRole("مشرف", "محاضر"), (req, res) => timetableController.addLecturer(req, res, io));
 
 
 

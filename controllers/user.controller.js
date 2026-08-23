@@ -331,12 +331,34 @@ exports.editRoleUser = (req, res, io) => {
         if (result.affectedRows === 0) {
           return res.status(404).json({ message: "المستخدم غير موجود" });
         }
+        syncLecturerLink(userid, role);
         io.emit("dataChanged", { table: "users" });
         res.json({ message: "updated" });
       }
     );
   });
 };
+
+// مزامنة سجل المحاضر مع صلاحية المستخدم:
+// عند منح دور "محاضر" يُنشأ له سجل في جدول lecturers مرتبط بحسابه
+// وعند سحب الدور يُفك الارتباط مع الإبقاء على السجل للمحاضرات السابقة
+function syncLecturerLink(userid, role) {
+  if (role === "محاضر") {
+    db.query("SELECT id FROM lecturers WHERE user_id=?", [userid], (err, rows) => {
+      if (err || (rows && rows.length > 0)) return;
+      db.query("SELECT username FROM users WHERE uuid=?", [userid], (nErr, nRows) => {
+        const name = !nErr && nRows.length > 0 ? nRows[0].username : "";
+        db.query(
+          "INSERT INTO lecturers (lecturer_name, user_id) VALUES (?, ?)",
+          [name || userid, userid],
+          () => {}
+        );
+      });
+    });
+  } else {
+    db.query("UPDATE lecturers SET user_id=NULL WHERE user_id=?", [userid], () => {});
+  }
+}
 // change_allusers
 
 // دالة تعديل صورة الخلفية

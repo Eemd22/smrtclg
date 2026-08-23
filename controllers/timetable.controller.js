@@ -189,13 +189,32 @@ function validateLecturePayload(body, cb) {
   });
 }
 
+// مزامنة المستخدمين أصحاب دور "محاضر": كل مستخدم بدور محاضر يُنشأ له سجل في جدول المحاضرين
+function syncLecturerUsers(done) {
+  const sql = `
+    INSERT INTO lecturers (lecturer_name, user_id)
+    SELECT u.username, u.uuid
+    FROM users u
+    LEFT JOIN lecturers l ON l.user_id = u.uuid
+    WHERE u.roles = 'محاضر' AND l.id IS NULL
+  `;
+  db.query(sql, () => done());
+}
+
 // جلب القوائم المرجعية لملء النماذج (مقررات، قاعات، محاضرون، أقسام، سنوات، مجموعات)
 exports.getReferences = (req, res) => {
+  syncLecturerUsers(() => {
   db.query("SELECT id, course_name AS name FROM courses ORDER BY course_name", (err, courses) => {
     if (err) return res.status(500).json({ message: "خطأ في جلب المقررات" });
     db.query("SELECT id, hall_name AS name FROM halls ORDER BY hall_name", (err2, halls) => {
       if (err2) return res.status(500).json({ message: "خطأ في جلب القاعات" });
-      db.query("SELECT id, lecturer_name AS name FROM lecturers ORDER BY lecturer_name", (err3, lecturers) => {
+      db.query(
+        `SELECT l.id,
+                COALESCE(NULLIF(u.username, ''), l.lecturer_name) AS name
+         FROM lecturers l
+         LEFT JOIN users u ON u.uuid = l.user_id
+         ORDER BY name`,
+        (err3, lecturers) => {
         if (err3) return res.status(500).json({ message: "خطأ في جلب المحاضرين" });
         db.query("SELECT id, name FROM departments ORDER BY name", (err4, departments) => {
           if (err4) return res.status(500).json({ message: "خطأ في جلب الأقسام" });
@@ -216,6 +235,7 @@ exports.getReferences = (req, res) => {
         });
       });
     });
+  });
   });
 };
 
@@ -304,6 +324,54 @@ exports.addCourse = (req, res, io) => {
           res.status(201).json({
             success: true,
             message: "تمت إضافة المقرر بنجاح",
+            id: result.insertId,
+          });
+        }
+      );
+    }
+  );
+};
+
+// إضافة محاضر جديد بالاسم فقط (دون حساب مستخدم)
+exports.addLecturer = (req, res, io) => {
+  const lecturer_name = (req.body?.lecturer_name ?? "").toString().trim();
+  if (!lecturer_name)
+    return res.status(400).json({ success: false, message: "اسم المحاضر مطلوب" });
+  if (lecturer_name.length > 100)
+    return res
+      .status(400)
+      .json({ success: false, message: "اسم المحاضر طويل جداً" });
+
+  db.query(
+    "SELECT id FROM lecturers WHERE lecturer_name = ?",
+    [lecturer_name],
+    (dupErr, dupRows) => {
+      if (dupErr) {
+        console.error("addLecturer error:", dupErr.message);
+        return res.status(500).json({ success: false, message: "خطأ في الخادم" });
+      }
+      if (dupRows && dupRows.length > 0)
+        return res.status(409).json({
+          success: false,
+          message: "هذا المحاضر مضاف مسبقاً",
+          id: dupRows[0].id,
+        });
+
+      db.query(
+        "INSERT INTO lecturers (lecturer_name) VALUES (?)",
+        [lecturer_name],
+        (err, result) => {
+          if (err) {
+            console.error("addLecturer error:", err.message);
+            return res.status(500).json({
+              success: false,
+              message: "فشل إضافة المحاضر، حاول مجدداً",
+            });
+          }
+          io.emit("dataChanged", { table: "lectures" });
+          res.status(201).json({
+            success: true,
+            message: "تمت إضافة المحاضر بنجاح",
             id: result.insertId,
           });
         }

@@ -113,7 +113,8 @@ exports.getAllUserBYId = (req, res) => {
 // دالة اضافة مستخدم جديد
 exports.addUser = (req, res, io) => {
     const uid = uuid();
-    const uuuid = "userID:" + uid;
+    // المعرف بدون بادئة ليطابق طول العمود uuid VARCHAR(36) في قاعدة البيانات
+    const uuuid = uid;
     const { username, email, password } = req.body;
 
     if (!username || !email || !password) {

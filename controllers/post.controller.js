@@ -1,4 +1,5 @@
 const db = require("../config/db");
+const { resolveUploadPath } = require("../services/cloudinary.service");
 // *********************** دالة جلب المنشورات *****************************
 exports.getAllPosts = (req, res) => {
     const userId = req.query.user_id || null;
@@ -84,9 +85,9 @@ exports.getAllPostsById = (req, res) => {
 
 // fetchPostsDataById
 // **************************** دالة اضافة منشور جديد *********************
-exports.addPost = (req, res, io) => {
+exports.addPost = async (req, res, io) => {
     const { content, user_id } = req.body;
-    const image = req.file ? `posts/uploads/${req.file.filename}` : null;
+    const image = await resolveUploadPath(req, "posts");
     const sql = "INSERT INTO posts (user_id, content, image) VALUES (?, ?, ?)";
     db.query(sql, [user_id, content, image], (err, result) => {
         if (err) return res.status(500).send(err);

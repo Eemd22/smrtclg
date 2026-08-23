@@ -5,6 +5,7 @@ const bcrypt = require("bcryptjs");
 const fs = require("fs");
 const path = require("path");
 const { signToken } = require("../middleware/auth");
+const { resolveUploadPath, deleteFile } = require("../services/cloudinary.service");
 
 const stripPassword = (rows) => {
     if (Array.isArray(rows)) rows.forEach((r) => delete r.password);
@@ -14,8 +15,13 @@ const stripPassword = (rows) => {
 const UPLOAD_DIRS = ["users/uploads", "posts/uploads", "boards/uploads", "departments/uploads", "alboum/uploads", "channel/uploads", "channelActivity/uploads", "lecture/uploads"]
     .map((d) => path.join(__dirname, "..", d) + path.sep);
 
-const removeUploadFile = (relPath) => {
+const removeUploadFile = async (relPath) => {
     try {
+        // روابط سحابية (Cloudinary): تحذف عبر واجهة Cloudinary
+        if (/^https?:\/\//i.test(String(relPath))) {
+            await deleteFile(relPath);
+            return;
+        }
         const full = path.join(__dirname, "..", path.normalize(relPath));
         if (!UPLOAD_DIRS.some((d) => full.startsWith(d))) return;
         fs.unlink(full, () => {});
@@ -208,9 +214,9 @@ exports.deleteUser = (req, res, io) => {
 
 // edit profile user
 // دالة تعديل صورة البروفايل
-exports.editProfile = (req, res, io) => {
+exports.editProfile = async (req, res, io) => {
     const userid = req.params.userid;
-    const profile = req.file ? `users/uploads/${req.file.filename}` : null;
+    const profile = await resolveUploadPath(req, "users");
     
     db.query("UPDATE users SET profile=? WHERE uuid=?", [profile, userid], (err, result) => {
         if (err) return res.status(500).send(err);
@@ -334,9 +340,9 @@ exports.editRoleUser = (req, res, io) => {
 // change_allusers
 
 // دالة تعديل صورة الخلفية
-exports.editCoverImage = (req, res, io) => {
+exports.editCoverImage = async (req, res, io) => {
     const userid = req.params.userid;
-    const cover_image = req.file ? `users/uploads/${req.file.filename}` : null;
+    const cover_image = await resolveUploadPath(req, "users");
 
     db.query("UPDATE users SET cover_image=? WHERE uuid=?", [cover_image, userid], (err, result) => {
         if (err) return res.status(500).send(err);

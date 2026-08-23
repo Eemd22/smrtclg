@@ -117,6 +117,12 @@ router.get("/get_users_byid/:userid",  (req, res) => userController.getAllUserBY
 
 
 // timetable route
+// إدارة جدول المحاضرات (CRUD كامل) - الإضافة/التعديل للمشرف والمحاضر، والحذف للمشرف فقط
+router.get("/timetable/references", require("../middleware/auth").requireRole("مشرف", "محاضر"), timetableController.getReferences);
+router.get("/timetable/lecture/:id", require("../middleware/auth").requireRole("مشرف", "محاضر"), timetableController.getLectureById);
+router.post("/lectures", require("../middleware/auth").requireRole("مشرف", "محاضر"), (req, res) => timetableController.addLecture(req, res, io));
+router.put("/lectures/:id", require("../middleware/auth").requireRole("مشرف", "محاضر"), (req, res) => timetableController.updateLecture(req, res, io));
+router.delete("/lectures/:id", require("../middleware/auth").requireRole("مشرف", "محاضر"), (req, res) => timetableController.deleteLecture(req, res, io));
 
 
 

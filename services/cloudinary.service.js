@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const path = require("path");
 
 const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
 const API_KEY = process.env.CLOUDINARY_API_KEY;
@@ -11,15 +12,20 @@ function isConfigured() {
 }
 
 /**
- * يرفع صورة على Cloudinary ويعيد الرابط الآمن الكامل
+ * يرفع ملفاً على Cloudinary ويعيد الرابط الآمن الكامل
+ * resourceType: "image" للصور أو "raw" للمستندات (pdf/docx/pptx...)
  * file: كائن multer من memoryStorage (يحتوي buffer + mimetype)
  */
-async function uploadImage(file) {
+async function uploadFile(file, resourceType = "image") {
   if (!isConfigured()) throw new Error("Cloudinary is not configured");
   if (!file || !file.buffer) throw new Error("No file buffer provided");
 
   const timestamp = Math.floor(Date.now() / 1000);
-  const paramsToSign = `folder=${FOLDER}&timestamp=${timestamp}`;
+  // public_id آمن (ASCII فقط) مع الحفاظ على الامتداد الأصلي
+  // ملاحظة: التوقيع يجب أن يشمل كل المتغيرات المرسلة مرتبة أبجدياً
+  const ext = path.extname(file.originalname || "").toLowerCase();
+  const publicId = `${Date.now()}-${Math.round(Math.random() * 1e6)}${ext}`;
+  const paramsToSign = `folder=${FOLDER}&public_id=${publicId}&timestamp=${timestamp}`;
   const signature = crypto
     .createHash("sha1")
     .update(paramsToSign + API_SECRET)
@@ -28,16 +34,17 @@ async function uploadImage(file) {
   const form = new FormData();
   form.append(
     "file",
-    new Blob([file.buffer], { type: file.mimetype || "image/jpeg" }),
-    file.originalname || "upload.jpg"
+    new Blob([file.buffer], { type: file.mimetype || "application/octet-stream" }),
+    Buffer.from(file.originalname || "upload", "latin1").toString("utf8")
   );
   form.append("api_key", API_KEY);
   form.append("timestamp", String(timestamp));
   form.append("folder", FOLDER);
+  form.append("public_id", publicId);
   form.append("signature", signature);
 
   const res = await fetch(
-    `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+    `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`,
     { method: "POST", body: form }
   );
 
@@ -50,4 +57,19 @@ async function uploadImage(file) {
   return data.secure_url;
 }
 
-module.exports = { isConfigured, uploadImage };
+/**
+ * يرفع صورة على Cloudinary ويعيد الرابط الآمن الكامل
+ * file: كائن multer من memoryStorage (يحتوي buffer + mimetype)
+ */
+async function uploadImage(file) {
+  return uploadFile(file, "image");
+}
+
+/**
+ * يرفع مستنداً (pdf/doc/docx/ppt/pptx) على Cloudinary ويعيد الرابط الآمن الكامل
+ */
+async function uploadDocument(file) {
+  return uploadFile(file, "raw");
+}
+
+module.exports = { isConfigured, uploadImage, uploadDocument };

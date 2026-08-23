@@ -1,5 +1,6 @@
 const multer = require("multer");
 const path = require("path");
+const { isConfigured } = require("../services/cloudinary.service");
 
 // الامتدادات المسموح بها فقط (مطابقة لفلترة التطبيق)
 const ALLOWED_EXTENSIONS = [".pdf", ".doc", ".docx", ".ppt", ".pptx"];
@@ -7,15 +8,19 @@ const ALLOWED_EXTENSIONS = [".pdf", ".doc", ".docx", ".ppt", ".pptx"];
 // الحد الأقصى لحجم الملف: 25 ميجابايت
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, "lecture/uploads/");
-    },
+// عند توفر مفاتيح Cloudinary نرفع في الذاكرة ثم إلى السحابة
+// وإلا نستخدم التخزين المحلي كالمعتاد
+const storage = isConfigured()
+    ? multer.memoryStorage()
+    : multer.diskStorage({
+          destination: (req, file, cb) => {
+              cb(null, "lecture/uploads/");
+          },
 
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + '-' + path.extname(file.originalname));
-    },
-});
+          filename: (req, file, cb) => {
+              cb(null, Date.now() + '-' + path.extname(file.originalname));
+          },
+      });
 
 const fileFilter = (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();

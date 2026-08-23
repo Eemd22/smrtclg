@@ -11,7 +11,8 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "db:export": "node scripts/db-transfer.js export",
-    "db:import": "node scripts/db-transfer.js import"
+    "db:import": "node scripts/db-transfer.js import",
+    "fix:lecture-titles": "node scripts/fix-lecture-titles.js"
   },
   "keywords": [],
   "author": "",

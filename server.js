@@ -163,6 +163,32 @@ db.query(
     }
 );
 
+// إصلاح أسماء المحاضرات المخزنة كرموز (mojibake): إصدارات قديمة كانت تفك اسم الملف
+// العربي بترميز latin1 قبل حفظه، هنا نعيد تحويله إلى UTF-8 عند كل إقلاع (idempotent)
+db.query("SELECT lec_id, lec_title, lec_url FROM lecture", (err, rows) => {
+    if (err) return console.error("Lecture titles repair failed:", err.message);
+    rows.forEach((row) => {
+        const fixes = {};
+        ["lec_title", "lec_url"].forEach((col) => {
+            const value = row[col];
+            if (!value || !/[\u0080-\u00FF]/.test(value)) return;
+            const decoded = Buffer.from(value, "latin1").toString("utf8");
+            // نطبق الإصلاح فقط إذا كان النص الناتج يحتوي فعلاً حروفاً عربية
+            if (decoded !== value && /[\u0600-\u06FF]/.test(decoded)) fixes[col] = decoded;
+        });
+        if (!Object.keys(fixes).length) return;
+        const setSql = Object.keys(fixes).map((c) => `${c} = ?`).join(", ");
+        db.query(
+            `UPDATE lecture SET ${setSql} WHERE lec_id = ?`,
+            [...Object.values(fixes), row.lec_id],
+            (uErr) => {
+                if (uErr) return console.error(`Lecture #${row.lec_id} repair failed:`, uErr.message);
+                console.log(`Lecture repaired #${row.lec_id}: "${row.lec_title}" -> "${fixes.lec_title ?? row.lec_title}"`);
+            }
+        );
+    });
+});
+
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

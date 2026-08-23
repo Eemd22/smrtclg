@@ -219,6 +219,99 @@ exports.getReferences = (req, res) => {
   });
 };
 
+// إضافة قاعة جديدة
+exports.addHall = (req, res, io) => {
+  const hall_name = (req.body?.hall_name ?? "").toString().trim();
+  if (!hall_name)
+    return res.status(400).json({ success: false, message: "اسم القاعة مطلوب" });
+
+  db.query(
+    "SELECT id FROM halls WHERE hall_name = ?",
+    [hall_name],
+    (cErr, cRows) => {
+      if (cErr) {
+        console.error("addHall error:", cErr.message);
+        return res.status(500).json({ success: false, message: "خطأ في الخادم" });
+      }
+      if (cRows && cRows.length > 0) {
+        return res
+          .status(409)
+          .json({ success: false, message: "القاعة موجودة مسبقاً", id: cRows[0].id });
+      }
+
+      db.query(
+        "INSERT INTO halls (hall_name) VALUES (?)",
+        [hall_name],
+        (err, result) => {
+          if (err) {
+            console.error("addHall error:", err.message);
+            return res.status(500).json({
+              success: false,
+              message: "فشل إضافة القاعة، حاول مجدداً",
+            });
+          }
+          io.emit("dataChanged", { table: "lectures" });
+          res.status(201).json({
+            success: true,
+            message: "تمت إضافة القاعة بنجاح",
+            id: result.insertId,
+          });
+        }
+      );
+    }
+  );
+};
+
+// إضافة مقرر جديد (للمشرف والمحاضر)
+exports.addCourse = (req, res, io) => {
+  const name = (req.body && req.body.course_name ? req.body.course_name : "")
+    .toString()
+    .trim();
+  if (!name)
+    return res.status(400).json({ success: false, message: "اسم المقرر مطلوب" });
+  if (name.length > 100)
+    return res
+      .status(400)
+      .json({ success: false, message: "اسم المقرر طويل جداً" });
+
+  db.query(
+    "SELECT id FROM courses WHERE course_name = ?",
+    [name],
+    (dupErr, dupRows) => {
+      if (dupErr) {
+        console.error("addCourse duplicate check error:", dupErr.message);
+        return res.status(500).json({ success: false, message: "خطأ في الخادم" });
+      }
+      if (dupRows && dupRows.length > 0)
+        return res.status(409).json({
+          success: false,
+          message: "هذا المقرر مضاف مسبقاً",
+          id: dupRows[0].id,
+        });
+
+      db.query(
+        "INSERT INTO courses (course_name) VALUES (?)",
+        [name],
+        (err, result) => {
+          if (err) {
+            console.error("addCourse error:", err.message);
+            return res.status(500).json({
+              success: false,
+              message: "فشل إضافة المقرر، حاول مجدداً",
+            });
+          }
+          io.emit("dataChanged", { table: "courses" });
+          res.status(201).json({
+            success: true,
+            message: "تمت إضافة المقرر بنجاح",
+            id: result.insertId,
+          });
+        }
+      );
+    }
+  );
+};
+
 // جلب محاضرة واحدة للتعديل
 exports.getLectureById = (req, res) => {
   const { id } = req.params;

@@ -1,4 +1,13 @@
 const db = require("../config/db");
+const { isConfigured, uploadImage } = require("../services/cloudinary.service");
+
+// يعيد رابط الصورة: سحابي إن توفرت مفاتيح Cloudinary، وإلا مسار محلي
+async function resolveImagePath(req) {
+    if (req.file && req.file.buffer && isConfigured()) {
+        return uploadImage(req.file);
+    }
+    return null;
+}
 
 
 exports.getChannel = (req, res,io) => {
@@ -21,18 +30,23 @@ exports.getChannel = (req, res,io) => {
 
 
 
-exports.addChannel = (req, res, io) => {
+exports.addChannel = async (req, res, io) => {
   
     const { channel_name} = req.body;
     // الهوية تُشتق من التوكن بعد التحقق من الدور (مشرف/محاضر) وليس من body
     const userid = req.user ? req.user.uuid : req.body.userid;
-    const image = req.file ? `channel/uploads/${req.file.filename}` : null;
+    let image = null;
+    try {
+        image = req.file ? (await resolveImagePath(req)) ?? `channel/uploads/${req.file.filename}` : null;
+    } catch (e) {
+        return res.status(500).json({ error: "image upload failed", detail: e.message });
+    }
 
-   
+    
     const sql = 'INSERT INTO channels (channel_name,channel_image,user_id) VALUES (?,?,?)';
    db.query(sql, [channel_name, image,userid], (err, result) => {
         if (err) return res.status(500).json(err);
-        io.emit("dataChanged");
+        io.emit("dataChanged", { table: "channels" });
 
         res.json({ message: "added" });
     });
@@ -41,16 +55,22 @@ exports.addChannel = (req, res, io) => {
 
 // ############## مسار اضافة محتوي في المجتمع ##################
 
-exports.addChannelActivity = (req, res,io) => {
-    const {ch_id, auther_id,content} = req.body;
+exports.addChannelActivity = async (req, res,io) => {
+    const {ch_id, auther_id,content} = req.body || {};
 
-     const image = req.file ? `channelActivity/uploads/${req.file.filename}` : null;
+    let image = null;
+    try {
+        image = req.file ? (await resolveImagePath(req)) ?? `channelActivity/uploads/${req.file.filename}` : null;
+    } catch (e) {
+        return res.status(500).json({ error: "image upload failed", detail: e.message });
+    }
+
 const _sql ='INSERT INTO channel_activity (ch_ac_image,ch_ac_auther,ch_id,ch_ac_content) VALUES (?,?,?,?)';
    db.query(_sql, 
     [image, auther_id,ch_id,content], 
      (err, result) => {
         if (err) return res.status(500).json(err);
-        io.emit("dataChanged");
+        io.emit("dataChanged", { table: "channel_activity" });
         res.json({ message: "added" });
     });
 }

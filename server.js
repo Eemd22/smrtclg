@@ -48,6 +48,19 @@ io.on("connection", (socket) => {
 const apiRoutes = require("./routes/api")(io);
 app.use("/", apiRoutes);
 
+// ترحيلات المخطط تُنفذ عند الإقلاع لتصحيح قاعدة البيانات تلقائياً
+const db = require("./config/db");
+const schemaMigrations = [
+    "ALTER TABLE channel_activity MODIFY ch_ac_image VARCHAR(255) NULL",
+    "ALTER TABLE channels MODIFY channel_image VARCHAR(255) NULL",
+];
+schemaMigrations.forEach((sql) => {
+    db.query(sql, (err) => {
+        if (err) console.error("Schema migration failed:", err.message);
+        else console.log("Schema migration applied:", sql);
+    });
+});
+
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

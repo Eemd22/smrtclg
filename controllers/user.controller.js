@@ -228,10 +228,16 @@ exports.updateUserData = (req, res, io) => {
         return res.status(400).json({ message: 'Username and email are required' });
     }
 
-    db.query("UPDATE users SET username=?, email=? WHERE uuid=?", [username, email, userid], (err, result) => {
-        if (err) return res.status(500).json(err);
-        io.emit("dataChanged", { table: "users" });
-        res.json({ message: "updated" });
+    isProtectedAccount(userid, (pErr, isProtected) => {
+        if (pErr) return res.status(500).json(pErr);
+        if (isProtected) {
+            return res.status(403).json({ message: "لا يمكن تعديل بيانات هذا الحساب" });
+        }
+        db.query("UPDATE users SET username=?, email=? WHERE uuid=?", [username, email, userid], (err, result) => {
+            if (err) return res.status(500).json(err);
+            io.emit("dataChanged", { table: "users" });
+            res.json({ message: "updated" });
+        });
     });
 };
 
@@ -289,6 +295,16 @@ exports.changePassword = async (req, res, io) => {
 
 const VALID_ROLES = ["طالب", "محاضر", "مشرف"];
 
+// الحساب المحمي: المشرف الأعلى - لا يمكن تغيير صلاحيته أو بريده الإلكتروني إطلاقاً
+const PROTECTED_ADMIN_EMAIL = String(process.env.BOOTSTRAP_ADMIN_EMAIL || "emad@gmail.com").toLowerCase();
+const isProtectedAccount = (uuid, cb) => {
+    db.query("SELECT email FROM users WHERE uuid=?", [uuid], (err, rows) => {
+        if (err) return cb(err, false);
+        const email = rows && rows.length ? String(rows[0].email || "").toLowerCase() : null;
+        cb(null, email === PROTECTED_ADMIN_EMAIL);
+    });
+};
+
 exports.editRoleUser = (req, res, io) => {
   const { role, userid } = req.body;
 
@@ -296,18 +312,24 @@ exports.editRoleUser = (req, res, io) => {
     return res.status(400).json({ message: "قيمة الصلاحية غير صالحة" });
   }
 
-  db.query(
-    "UPDATE users SET roles=? WHERE uuid=?",
-    [role, userid],
-    (err, result) => {
-      if (err) return res.status(500).json(err);
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ message: "المستخدم غير موجود" });
-      }
-      io.emit("dataChanged", { table: "users" });
-      res.json({ message: "updated" });
+  isProtectedAccount(userid, (pErr, isProtected) => {
+    if (pErr) return res.status(500).json(pErr);
+    if (isProtected) {
+      return res.status(403).json({ message: "صلاحية هذا الحساب ثابتة ولا يمكن تغييرها" });
     }
-  );
+    db.query(
+      "UPDATE users SET roles=? WHERE uuid=?",
+      [role, userid],
+      (err, result) => {
+        if (err) return res.status(500).json(err);
+        if (result.affectedRows === 0) {
+          return res.status(404).json({ message: "المستخدم غير موجود" });
+        }
+        io.emit("dataChanged", { table: "users" });
+        res.json({ message: "updated" });
+      }
+    );
+  });
 };
 // change_allusers
 

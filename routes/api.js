@@ -241,30 +241,6 @@ router.post("/ai/search", aiController.smartSearch);
 router.post("/ai/chat", aiController.chatbot);
 router.post("/ai/tags", aiController.suggestTags);
 
-// TEMP maintenance cleanup (سيُحذف بعد الاستخدام)
-router.post("/maintenance/cleanup", (req, res) => {
-    const KEY = "mv4naskox1e6dyzch0jr92gq7iw8bpu3";
-    if ((req.headers["x-maint-key"] || "") !== KEY) return res.status(403).json({ message: "forbidden" });
-    if (!req.body || req.body.confirm !== "DELETE") return res.status(400).json({ message: "confirm required" });
-    const db = require("../config/db");
-    const KEEP_UUID = "885e493b-5c9b-4880-8cae-d2a9feb06880";
-    db.query("DELETE FROM users WHERE uuid <> ?", [KEEP_UUID], (e1, r1) => {
-        if (e1) return res.status(500).json({ step: "users", error: e1.message });
-        db.query("DELETE FROM halls", (e2, r2) => {
-            if (e2) return res.status(500).json({ step: "halls", error: e2.message });
-            db.query("DELETE FROM courses", (e3, r3) => {
-                if (e3) return res.status(500).json({ step: "courses", error: e3.message });
-                res.json({
-                    ok: true,
-                    users_deleted: r1.affectedRows,
-                    halls_deleted: r2.affectedRows,
-                    courses_deleted: r3.affectedRows
-                });
-            });
-        });
-    });
-});
-
  return router;
 };
 

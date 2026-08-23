@@ -1,7 +1,7 @@
 
 
 const db = require("../config/db");
-const { resolveUploadPath } = require("../services/cloudinary.service");
+const { resolveUploadPath } = require("../services/db-storage.service");
 
 exports.getBoard = (req, res,io) => {
     const userId = req.query.user_id || null;
@@ -55,7 +55,7 @@ exports.getBoard = (req, res,io) => {
 
 exports.addBoard = async (req, res, io) => {
     const { content, user_id } = req.body;
-    const image = await resolveUploadPath(req, "boards");
+    const image = await resolveUploadPath(req);
    
     const sql = "INSERT INTO board ( content,user_id, image) VALUES (?, ?, ?)";
     db.query(sql, [ content,user_id, image], (err, result) => {

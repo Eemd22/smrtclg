@@ -5,7 +5,7 @@ const bcrypt = require("bcryptjs");
 const fs = require("fs");
 const path = require("path");
 const { signToken } = require("../middleware/auth");
-const { resolveUploadPath, deleteFile } = require("../services/cloudinary.service");
+const { resolveUploadPath, deleteUpload } = require("../services/db-storage.service");
 
 const stripPassword = (rows) => {
     if (Array.isArray(rows)) rows.forEach((r) => delete r.password);
@@ -15,11 +15,11 @@ const stripPassword = (rows) => {
 const UPLOAD_DIRS = ["users/uploads", "posts/uploads", "boards/uploads", "departments/uploads", "alboum/uploads", "channel/uploads", "channelActivity/uploads", "lecture/uploads"]
     .map((d) => path.join(__dirname, "..", d) + path.sep);
 
-const removeUploadFile = async (relPath) => {
+const removeUploadFile = (relPath) => {
     try {
-        // روابط سحابية (Cloudinary): تحذف عبر واجهة Cloudinary
-        if (/^https?:\/\//i.test(String(relPath))) {
-            await deleteFile(relPath);
+        // ملفات مخزنة في قاعدة البيانات بصيغة db/<id>
+        if (/^db\/\d+$/.test(String(relPath))) {
+            deleteUpload(relPath);
             return;
         }
         const full = path.join(__dirname, "..", path.normalize(relPath));
@@ -216,7 +216,7 @@ exports.deleteUser = (req, res, io) => {
 // دالة تعديل صورة البروفايل
 exports.editProfile = async (req, res, io) => {
     const userid = req.params.userid;
-    const profile = await resolveUploadPath(req, "users");
+    const profile = await resolveUploadPath(req);
     
     db.query("UPDATE users SET profile=? WHERE uuid=?", [profile, userid], (err, result) => {
         if (err) return res.status(500).send(err);
@@ -342,7 +342,7 @@ exports.editRoleUser = (req, res, io) => {
 // دالة تعديل صورة الخلفية
 exports.editCoverImage = async (req, res, io) => {
     const userid = req.params.userid;
-    const cover_image = await resolveUploadPath(req, "users");
+    const cover_image = await resolveUploadPath(req);
 
     db.query("UPDATE users SET cover_image=? WHERE uuid=?", [cover_image, userid], (err, result) => {
         if (err) return res.status(500).send(err);

@@ -1,26 +1,12 @@
 const multer = require("multer");
 const path = require("path");
-const { isConfigured } = require("../services/cloudinary.service");
+const { MAX_UPLOAD_SIZE } = require("../services/db-storage.service");
+
+// التخزين في الذاكرة ثم حفظه في قاعدة البيانات (تخزين دائم)
+const storage = multer.memoryStorage();
 
 // الامتدادات المسموح بها فقط (مطابقة لفلترة التطبيق)
 const ALLOWED_EXTENSIONS = [".pdf", ".doc", ".docx", ".ppt", ".pptx"];
-
-// الحد الأقصى لحجم الملف: 25 ميجابايت
-const MAX_FILE_SIZE = 25 * 1024 * 1024;
-
-// عند توفر مفاتيح Cloudinary نرفع في الذاكرة ثم إلى السحابة
-// وإلا نستخدم التخزين المحلي كالمعتاد
-const storage = isConfigured()
-    ? multer.memoryStorage()
-    : multer.diskStorage({
-          destination: (req, file, cb) => {
-              cb(null, "lecture/uploads/");
-          },
-
-          filename: (req, file, cb) => {
-              cb(null, Date.now() + '-' + path.extname(file.originalname));
-          },
-      });
 
 const fileFilter = (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
@@ -35,7 +21,7 @@ const fileFilter = (req, file, cb) => {
 const alboum = multer({
     storage: storage,
     fileFilter: fileFilter,
-    limits: { fileSize: MAX_FILE_SIZE },
+    limits: { fileSize: MAX_UPLOAD_SIZE },
 });
 
 module.exports = alboum;

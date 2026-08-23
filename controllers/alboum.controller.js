@@ -1,5 +1,5 @@
 const db = require("../config/db");
-const { resolveUploadPath } = require("../services/cloudinary.service");
+const { resolveUploadPath } = require("../services/db-storage.service");
 
 
 // جلب صور الألبوم - العرض يعتمد على القسم المختار
@@ -32,7 +32,7 @@ exports.addAlboum = async (req, res, io) => {
     if (!deptid || !userid || parseInt(deptid) <= 0) {
         return res.status(400).json({ message: "dept_id and user_id are required" });
     }
-    const image = await resolveUploadPath(req, "alboum");
+    const image = await resolveUploadPath(req);
     console.log(deptid);
 
     const sql = 'INSERT INTO albums (image, dept_id, user_id) VALUES (?,?,?)';

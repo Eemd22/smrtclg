@@ -51,6 +51,13 @@ app.use("/", apiRoutes);
 // ترحيلات المخطط تُنفذ عند الإقلاع لتصحيح قاعدة البيانات تلقائياً
 const db = require("./config/db");
 const schemaMigrations = [
+    // جدول التخزين الدائم للصور والمستندات داخل قاعدة البيانات
+    `CREATE TABLE IF NOT EXISTS uploads (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        mime VARCHAR(100) NOT NULL DEFAULT 'application/octet-stream',
+        data LONGBLOB NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
     "ALTER TABLE channel_activity MODIFY ch_ac_image VARCHAR(255) NULL",
     "ALTER TABLE channels MODIFY channel_image VARCHAR(255) NULL",
 ];

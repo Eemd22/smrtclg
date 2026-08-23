@@ -1,19 +1,8 @@
 const multer = require("multer");
-const path = require("path");
-const { isConfigured } = require("../services/cloudinary.service");
+const { MAX_UPLOAD_SIZE } = require("../services/db-storage.service");
 
-// عند توفر مفاتيح Cloudinary نرفع في الذاكرة ثم إلى السحابة
-// وإلا نستخدم التخزين المحلي كالمعتاد
-const storage = isConfigured()
-    ? multer.memoryStorage()
-    : multer.diskStorage({
-          destination: (req, file, cb) => {
-              cb(null, "users/uploads/");
-          },
-          filename: (req, file, cb) => {
-              cb(null, Date.now() + path.extname(file.originalname));
-          },
-      });
+// التخزين في الذاكرة ثم حفظه في قاعدة البيانات (تخزين دائم)
+const storage = multer.memoryStorage();
 
-const upload = multer({ storage: storage });
+const upload = multer({ storage: storage, limits: { fileSize: MAX_UPLOAD_SIZE } });
 module.exports = upload;

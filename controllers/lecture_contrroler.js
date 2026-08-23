@@ -1,6 +1,6 @@
 
 const db = require("../config/db");
-const { isConfigured, uploadDocument } = require("../services/cloudinary.service");
+const { resolveUploadPath } = require("../services/db-storage.service");
 
 exports.getLecture = (req, res) => {
     const { dept_id, lec_level } = req.query;
@@ -34,17 +34,13 @@ exports.addLecture = async (req, res, io) => {
     const deptId = req.body.dept_id || null;
     const groupId = req.body.group_id || null;
 
-    // القرص على Render مؤقت ويُمسح مع كل نشر؛ عند توفر Cloudinary نخزن الملف سحابياً
-    // ونحفظ الرابط الكامل في lec_url، وإلا نرجع للتخزين المحلي كالمعتاد
+    // القرص على Render مؤقت ويُمسح مع كل نشر؛ نحفظ الملف في قاعدة البيانات
+    // (تخزين دائم) ونخزن المسار الافتراضي db/<id> في lec_url
     let savedFileName;
     try {
-        if (req.file.buffer && isConfigured()) {
-            savedFileName = await uploadDocument({ ...req.file, originalname: originalName });
-        } else {
-            savedFileName = req.file.filename;
-        }
+        savedFileName = await resolveUploadPath(req);
     } catch (e) {
-        console.error("Lecture cloud upload failed:", e.message);
+        console.error("Lecture DB upload failed:", e.message);
         return res.status(500).json({
             success: false,
             message: "فشل حفظ الملف على الخادم، حاول مجدداً"

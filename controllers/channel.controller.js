@@ -1,13 +1,5 @@
 const db = require("../config/db");
-const { isConfigured, uploadImage } = require("../services/cloudinary.service");
-
-// يعيد رابط الصورة: سحابي إن توفرت مفاتيح Cloudinary، وإلا مسار محلي
-async function resolveImagePath(req) {
-    if (req.file && req.file.buffer && isConfigured()) {
-        return uploadImage(req.file);
-    }
-    return null;
-}
+const { resolveUploadPath } = require("../services/db-storage.service");
 
 
 exports.getChannel = (req, res,io) => {
@@ -42,7 +34,7 @@ exports.addChannel = async (req, res, io) => {
     }
     let image = null;
     try {
-        image = req.file ? (await resolveImagePath(req)) ?? `channel/uploads/${req.file.filename}` : null;
+        image = req.file ? await resolveUploadPath(req) : null;
     } catch (e) {
         return res.status(500).json({ error: "image upload failed", detail: e.message });
     }
@@ -72,7 +64,7 @@ exports.addChannelActivity = async (req, res,io) => {
 
     let image = null;
     try {
-        image = req.file ? (await resolveImagePath(req)) ?? `channelActivity/uploads/${req.file.filename}` : null;
+        image = req.file ? await resolveUploadPath(req) : null;
     } catch (e) {
         return res.status(500).json({ error: "image upload failed", detail: e.message });
     }

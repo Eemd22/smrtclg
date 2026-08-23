@@ -1,5 +1,5 @@
 const db = require("../config/db");
-const { resolveUploadPath } = require("../services/cloudinary.service");
+const { resolveUploadPath } = require("../services/db-storage.service");
 
 
 exports.getActivity = (req, res,io) => {
@@ -53,7 +53,7 @@ exports.addActivity = async (req, res, io) => {
     if (!activity || !user_id || !dept_id || parseInt(dept_id) <= 0) {
         return res.status(400).json({ message: "activity, user_id and dept_id are required" });
     }
-    const image = await resolveUploadPath(req, "departments");
+    const image = await resolveUploadPath(req);
     console.log(dept_id);
    
     const sql = 'INSERT INTO activites (activity, user_id, image, dept_id) VALUES (?,?,?,?)';

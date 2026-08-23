@@ -39,6 +39,23 @@ const timetableController = require("../controllers/timetable.controller");
     // مصادقة اختيارية: ترفق req.user عند وجود توكن صالح ولا تمنع أي طلب
     router.use(require("../middleware/auth").optionalAuth);
 
+    // تقديم الملفات المخزنة في قاعدة البيانات (تخزين دائم)
+    const { getUpload } = require("../services/db-storage.service");
+    router.get("/db/:id", async (req, res) => {
+        try {
+            const id = parseInt(req.params.id, 10);
+            if (!Number.isInteger(id) || id <= 0) return res.status(404).end();
+            const file = await getUpload(id);
+            if (!file) return res.status(404).end();
+            // المعرفات فريدة وغير قابلة للتغيير، لذا يمكن تخزينها مؤقتاً للأبد
+            res.set("Content-Type", file.mime);
+            res.set("Cache-Control", "public, max-age=31536000, immutable");
+            res.send(file.data);
+        } catch (_) {
+            res.status(500).end();
+        }
+    });
+
     // التحقق من ملكية المحتوى قبل الحذف/التعديل (المالك أو "مشرف")
     const ownPost = require("../middleware/auth").verifyOwnership({ table: "posts", idColumn: "id", ownerColumn: "user_id", param: "id" });
     const ownPostEdit = require("../middleware/auth").verifyOwnership({ table: "posts", idColumn: "id", ownerColumn: "user_id", param: "postid" });

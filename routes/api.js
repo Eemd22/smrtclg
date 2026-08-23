@@ -20,7 +20,8 @@ const timetableController = require("../controllers/timetable.controller");
  const aiController = require("../controllers/ai.controller");
    const boardLikeController = require("../controllers/board.likeController");
    const activityLikeController = require("../controllers/activity.likeController");
-   const activityCommentController = require("../controllers/activity.commentController");
+    const activityCommentController = require("../controllers/activity.commentController");
+    const boardCommentController = require("../controllers/board.commentController");
   const channelActivityLikeController = require("../controllers/channelActivity.likeController");
 
 // اكواد رفع الملفات
@@ -95,6 +96,10 @@ router.get("/get_users_byid/:userid",  (req, res) => userController.getAllUserBY
 
 // Route Board Likes مسارات اعجابات البورد
  router.post("/add_board_like", (req, res) => boardLikeController.addBoardLike(req, res, io));
+
+// Route Board Comments مسارات تعليقات البورد
+ router.post("/add_board_comment", (req, res) => boardCommentController.addBoardComment(req, res, io));
+ router.get("/get_board_comments/:b_id", (req, res) => boardCommentController.getBoardComments(req, res));
 
 // Route Activity Likes مسارات اعجابات الانشطة
  router.post("/add_activity_like", (req, res) => activityLikeController.addActivityLike(req, res, io));

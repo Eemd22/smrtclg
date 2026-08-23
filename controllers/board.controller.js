@@ -17,6 +17,10 @@ exports.getBoard = (req, res,io) => {
         COALESCE(bl.sad_count, 0) AS sad_count,
         COALESCE(bl.angry_count, 0) AS angry_count,
         (
+            SELECT COUNT(*) FROM board_comments
+            WHERE b_id = board.b_id
+        ) AS comments_count,
+        (
             SELECT reaction_type FROM board_likes
             WHERE b_id = board.b_id AND user_id = ?
             LIMIT 1

@@ -27,3 +27,7 @@ services:
         value: "true"
       - key: MYSQL_CONNECTION_LIMIT
         value: "5"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_BASE_URL
+        value: "https://api.openai.com/v1"

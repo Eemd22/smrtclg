@@ -153,6 +153,16 @@ db.query(
     }
 );
 
+// تنظيف المجتمعات: حذف المجتمعات المحفوظة بدون اسم (بيانات تالفة من إصدار قديم
+// كان يسمح بالحفظ باسم فارغ) - الأنشطة المرتبطة تُحذف تلقائياً بواسطة ON DELETE CASCADE
+db.query(
+    "DELETE FROM channels WHERE channel_name IS NULL OR TRIM(channel_name) = ''",
+    (err, result) => {
+        if (err) console.error("Channels cleanup failed:", err.message);
+        else if (result.affectedRows > 0) console.log("Channels cleanup removed:", result.affectedRows);
+    }
+);
+
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

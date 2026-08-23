@@ -35,6 +35,11 @@ exports.addChannel = async (req, res, io) => {
     const { channel_name} = req.body;
     // الهوية تُشتق من التوكن بعد التحقق من الدور (مشرف/محاضر) وليس من body
     const userid = req.user ? req.user.uuid : req.body.userid;
+
+    // اسم المجتمع مطلوب - نرفض القيم الفارغة بدل حفظها فارغة في قاعدة البيانات
+    if (!channel_name || !String(channel_name).trim()) {
+        return res.status(400).json({ error: "اسم المجتمع مطلوب", detail: "لا يمكن إنشاء مجتمع بدون اسم" });
+    }
     let image = null;
     try {
         image = req.file ? (await resolveImagePath(req)) ?? `channel/uploads/${req.file.filename}` : null;

@@ -61,6 +61,25 @@ schemaMigrations.forEach((sql) => {
     });
 });
 
+// تنظيف الأقسام: حذف الأقسام المكررة/التالفة والاحتفاظ بالأقسام الرسمية فقط
+// 1 نظم معلومات المكتبات، 2 نظم معلومات المحاسبية، 3 نظم معلومات الادارية
+// 4 هندسة البرمجيات، 5 علوم الحاسوب، 6 تقانة المعلومات
+db.query(
+    "DELETE FROM departments WHERE id > 6 OR name NOT IN (?, ?, ?, ?, ?, ?)",
+    [
+        "نظم معلومات المكتبات",
+        "نظم معلومات المحاسبية",
+        "نظم معلومات الادارية",
+        "هندسة البرمجيات",
+        "علوم الحاسوب",
+        "تقانة المعلومات",
+    ],
+    (err, result) => {
+        if (err) console.error("Departments cleanup failed:", err.message);
+        else if (result.affectedRows > 0) console.log("Departments cleanup removed:", result.affectedRows);
+    }
+);
+
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

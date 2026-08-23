@@ -61,6 +61,62 @@ schemaMigrations.forEach((sql) => {
     });
 });
 
+// activity_likes: إضافة مفاتيح أجنبية مع ON DELETE CASCADE بعد تنظيف السجلات اليتيمة
+db.query(
+    "SELECT COUNT(*) AS c FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'activity_likes'",
+    (err, rows) => {
+        if (err) return console.error("activity_likes FK check failed:", err.message);
+        if (rows[0].c > 0) return;
+        const steps = [
+            "DELETE al FROM activity_likes al LEFT JOIN users u ON al.user_id = u.uuid WHERE u.uuid IS NULL",
+            "DELETE al FROM activity_likes al LEFT JOIN activites a ON al.activity_id = a.id WHERE a.id IS NULL",
+            "ALTER TABLE activity_likes ADD CONSTRAINT fk_activity_likes_user FOREIGN KEY (user_id) REFERENCES users(uuid) ON DELETE CASCADE",
+            "ALTER TABLE activity_likes ADD CONSTRAINT fk_activity_likes_activity FOREIGN KEY (activity_id) REFERENCES activites(id) ON DELETE CASCADE",
+        ];
+        steps.forEach((sql) => {
+            db.query(sql, (e) => {
+                if (e) console.error("activity_likes migration failed:", e.message);
+                else console.log("Schema migration applied:", sql);
+            });
+        });
+    }
+);
+
+// ضمان حذف بيانات أي جدول مرتبط بالمستخدم إجبارياً (ON DELETE CASCADE)
+// تنظيف السجلات اليتيمة ثم إضافة المفتاح الأجنبي لكل جدول يفتقده
+const userCascadeTables = [
+    ["posts", "user_id"],
+    ["comments", "user_id"],
+    ["likes", "user_id"],
+    ["board", "user_id"],
+    ["activites", "user_id"],
+    ["channels", "user_id"],
+    ["channel_activity", "ch_ac_auther"],
+    ["albums", "user_id"],
+];
+
+userCascadeTables.forEach(([table, column]) => {
+    db.query(
+        `SELECT COUNT(*) AS c FROM information_schema.REFERENTIAL_CONSTRAINTS
+         WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = ? AND REFERENCED_TABLE_NAME = 'users'`,
+        [table],
+        (err, rows) => {
+            if (err) return console.error(`${table} user FK check failed:`, err.message);
+            if (rows[0].c > 0) return;
+            const steps = [
+                `DELETE t FROM ${table} t LEFT JOIN users u ON t.${column} = u.uuid WHERE u.uuid IS NULL`,
+                `ALTER TABLE ${table} ADD CONSTRAINT fk_${table}_user FOREIGN KEY (${column}) REFERENCES users(uuid) ON DELETE CASCADE`,
+            ];
+            steps.forEach((sql) => {
+                db.query(sql, (e) => {
+                    if (e) console.error(`${table} user-cascade migration failed:`, e.message);
+                    else console.log("Schema migration applied:", sql);
+                });
+            });
+        }
+    );
+});
+
 // تنظيف الأقسام: حذف الأقسام المكررة/التالفة والاحتفاظ بالأقسام الرسمية فقط
 // 1 نظم معلومات المكتبات، 2 نظم معلومات المحاسبية، 3 نظم معلومات الادارية
 // 4 هندسة البرمجيات، 5 علوم الحاسوب، 6 تقانة المعلومات

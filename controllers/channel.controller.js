@@ -56,7 +56,14 @@ exports.addChannel = async (req, res, io) => {
 // ############## مسار اضافة محتوي في المجتمع ##################
 
 exports.addChannelActivity = async (req, res,io) => {
-    const {ch_id, auther_id,content} = req.body || {};
+    const {ch_id, content} = req.body || {};
+    // الهوية تُشتق من التوكن إن وُجد وإلا من الحقول المرسلة
+    const auther_id = req.user ? req.user.uuid : (req.body || {}).auther_id;
+
+    // تحقق من المدخلات قبل الادخال لتجنب انهيار المفتاح الأجنبي بخطأ 500 خام
+    if (!ch_id || !auther_id || auther_id === "null" || auther_id === "") {
+        return res.status(400).json({ error: "بيانات ناقصة", detail: "ch_id و auther_id مطلوبان - قد تكون الجلسة منتهية، أعد تسجيل الدخول" });
+    }
 
     let image = null;
     try {

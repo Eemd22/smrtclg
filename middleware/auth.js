@@ -39,16 +39,23 @@ function optionalAuth(req, res, next) {
     next();
 }
 
-// حماية صارمة: يرفض الطلبات بدون توكن صالح
+// حماية صارمة: يرفض الطلبات بدون توكن صالح أو إذا كان المستخدم محذوفاً من قاعدة البيانات
 function verifyToken(req, res, next) {
     const token = extractToken(req);
     if (!token) return res.status(401).json({ message: "مطلوب تسجيل الدخول" });
+    let payload;
     try {
-        req.user = jwt.verify(token, JWT_SECRET);
-        next();
+        payload = jwt.verify(token, JWT_SECRET);
     } catch (_) {
         return res.status(401).json({ message: "جلسة غير صالحة أو منتهية" });
     }
+    db.query("SELECT uuid FROM users WHERE uuid=?", [payload.uuid], (err, rows) => {
+        if (err || !rows || rows.length === 0) {
+            return res.status(401).json({ message: "جلسة غير صالحة أو منتهية" });
+        }
+        req.user = payload;
+        next();
+    });
 }
 
 // جلب الدور الحالي من قاعدة البيانات بدل الاعتماد على التوكن القديم

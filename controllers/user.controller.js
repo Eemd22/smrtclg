@@ -2,11 +2,24 @@
 const db = require("../config/db");
 const {v4: uuid} = require('uuid');
 const bcrypt = require("bcryptjs");
+const fs = require("fs");
+const path = require("path");
 const { signToken } = require("../middleware/auth");
 
 const stripPassword = (rows) => {
     if (Array.isArray(rows)) rows.forEach((r) => delete r.password);
     return rows;
+};
+
+const UPLOAD_DIRS = ["users/uploads", "posts/uploads", "boards/uploads", "departments/uploads", "alboum/uploads", "channel/uploads", "channelActivity/uploads", "lecture/uploads"]
+    .map((d) => path.join(__dirname, "..", d) + path.sep);
+
+const removeUploadFile = (relPath) => {
+    try {
+        const full = path.join(__dirname, "..", path.normalize(relPath));
+        if (!UPLOAD_DIRS.some((d) => full.startsWith(d))) return;
+        fs.unlink(full, () => {});
+    } catch (_) {}
 };
 
 
@@ -122,13 +135,72 @@ exports.addUser = (req, res, io) => {
 
 
 
+// حذف إجباري لبيانات كل الجداول المرتبطة بالمستخدم قبل حذف سجل المستخدم نفسه
+// الترتيب مهم: الأبناء أولاً ثم الآباء لتفادي تعارض المفاتيح الأجنبية
+const USER_FORCED_DELETES = [
+    // تفاعلات وتعليقات منشورات المستخدم (بما فيها تفاعلات الآخرين على منشوراته)
+    { sql: "DELETE FROM likes WHERE user_id=? OR post_id IN (SELECT id FROM posts WHERE user_id=?)" },
+    { sql: "DELETE FROM comments WHERE user_id=? OR post_id IN (SELECT id FROM posts WHERE user_id=?)" },
+    { sql: "DELETE FROM posts WHERE user_id=?" },
+    // البورد وتفاعلاته وتعليقاته
+    { sql: "DELETE FROM board_likes WHERE user_id=? OR b_id IN (SELECT b_id FROM board WHERE user_id=?)" },
+    { sql: "DELETE FROM board_comments WHERE user_id=? OR b_id IN (SELECT b_id FROM board WHERE user_id=?)" },
+    { sql: "DELETE FROM board WHERE user_id=?" },
+    // الأنشطة وتفاعلاتها وتعليقاتها
+    { sql: "DELETE FROM activity_likes WHERE user_id=?" },
+    { sql: "DELETE FROM activity_comments WHERE user_id=?" },
+    { sql: "DELETE FROM activites WHERE user_id=?" },
+    // المجتمعات ومحتوياتها وتفاعلاتها (بما فيها محتوى الآخرين داخل مجتمع المستخدم)
+    { sql: "DELETE FROM channel_activity_likes WHERE user_id=? OR ch_ac_id IN (SELECT ch_ac_id FROM channel_activity WHERE ch_ac_auther=? OR ch_id IN (SELECT ch_id FROM channels WHERE user_id=?))" },
+    { sql: "DELETE FROM channel_activity WHERE ch_ac_auther=? OR ch_id IN (SELECT ch_id FROM channels WHERE user_id=?)" },
+    { sql: "DELETE FROM channels WHERE user_id=?" },
+    // الألبومات والمتابعات
+    { sql: "DELETE FROM albums WHERE user_id=?" },
+    { sql: "DELETE FROM followers WHERE follower_id=? OR following_id=?" },
+];
+
 // دالة حذف مستخدم
+// تحذف ملفات المستخدم ومحتوياته من القرص ثم تحذف بياناته من جميع الجداول المرتبطة إجبارياً ثم تحذف السجل
 exports.deleteUser = (req, res, io) => {
-    const { id } = req.params;
-    db.query("DELETE FROM users WHERE id=?", [id], (err, result) => {
-        if (err) return res.status(500).json(err);
-        io.emit("dataChanged", { table: "users" });
-        res.json({ message: "deleted" });
+    const id = req.params.id;
+    const fileQueries = [
+        "SELECT profile AS f FROM users WHERE uuid=? AND profile IS NOT NULL",
+        "SELECT cover_image AS f FROM users WHERE uuid=? AND cover_image IS NOT NULL",
+        "SELECT image AS f FROM posts WHERE user_id=? AND image IS NOT NULL",
+        "SELECT image AS f FROM board WHERE user_id=? AND image IS NOT NULL",
+        "SELECT image AS f FROM activites WHERE user_id=? AND image IS NOT NULL",
+        "SELECT channel_image AS f FROM channels WHERE user_id=?",
+        "SELECT ch_ac_image AS f FROM channel_activity WHERE ch_ac_auther=?",
+        "SELECT image AS f FROM albums WHERE user_id=?",
+    ];
+    let files = [];
+    let pending = fileQueries.length;
+    const runForcedDeletes = (i, done) => {
+        if (i >= USER_FORCED_DELETES.length) return done();
+        const { sql } = USER_FORCED_DELETES[i];
+        const params = Array((sql.match(/\?/g) || []).length).fill(id);
+        db.query(sql, params, (e) => {
+            if (e) console.error("حذف بيانات المستخدم من جدول مرتبط فشل:", e.message);
+            runForcedDeletes(i + 1, done);
+        });
+    };
+    fileQueries.forEach((q) => {
+        db.query(q, [id], (err, rows) => {
+            if (!err && Array.isArray(rows)) files = files.concat(rows.map((r) => r.f).filter(Boolean));
+            if (--pending === 0) {
+                files.forEach(removeUploadFile);
+                runForcedDeletes(0, () => {
+                    db.query("DELETE FROM users WHERE uuid=?", [id], (err2, result) => {
+                        if (err2) return res.status(500).json(err2);
+                        if (!result || result.affectedRows === 0) {
+                            return res.status(404).json({ message: "المستخدم غير موجود" });
+                        }
+                        io.emit("dataChanged", { table: "users" });
+                        res.json({ message: "deleted" });
+                    });
+                });
+            }
+        });
     });
 };
 

@@ -3,10 +3,12 @@ const db = require("../config/db");
 
 exports.getActivity = (req, res,io) => {
    const userId = req.query.user_id || null;
+   const deptId = req.query.dept_id || null;
 
     const sql = `
         SELECT users.uuid, users.roles, users.username, users.profile,
         activites.id, activites.activity, activites.image, activites.created_at, activites.dept_id, activites.user_id,
+        departments.name AS dept_name,
         COALESCE(al.likes_count, 0) AS likes_count,
         COALESCE(al.dislikes_count, 0) AS dislikes_count,
         COALESCE(ac.comments_count, 0) AS comments_count,
@@ -17,6 +19,7 @@ exports.getActivity = (req, res,io) => {
         ) AS user_reaction
         FROM activites
         INNER JOIN users ON activites.user_id = users.uuid
+        LEFT JOIN departments ON departments.id = activites.dept_id
         LEFT JOIN (
             SELECT activity_id,
                 COUNT(CASE WHEN reaction_type = 'like' THEN 1 END) AS likes_count,
@@ -29,9 +32,11 @@ exports.getActivity = (req, res,io) => {
             FROM activity_comments
             GROUP BY activity_id
         ) ac ON ac.activity_id = activites.id
+        ${deptId ? "WHERE activites.dept_id = ?" : ""}
         ORDER BY activites.created_at DESC
     `;
-         db.query(sql, [userId], (err, result) => {
+         const params = deptId ? [userId, deptId] : [userId];
+         db.query(sql, params, (err, result) => {
         if (err) return res.status(500).json(err);
 
         res.json(result);
@@ -44,6 +49,9 @@ exports.getActivity = (req, res,io) => {
 exports.addActivity = (req, res, io) => {
   
     const { activity, user_id ,dept_id} = req.body;
+    if (!activity || !user_id || !dept_id || parseInt(dept_id) <= 0) {
+        return res.status(400).json({ message: "activity, user_id and dept_id are required" });
+    }
     const image = req.file ? `departments/uploads/${req.file.filename}` : null;
     console.log(dept_id);
    

@@ -67,6 +67,7 @@ router.get("/get_users_byid/:userid",  (req, res) => userController.getAllUserBY
  router.put("/update_profile/:userid", (req, res) => userController.updateUserData(req, res, io));
  router.post("/change_password/:userid", require("../middleware/auth").requireSelfOrAdmin("userid"), (req, res) => userController.changePassword(req, res, io));
  router.post("/forgot_password", (req, res) => userController.forgotPassword(req, res, io));
+ router.delete("/users/:id", require("../middleware/auth").requireSelfOrAdmin("id"), (req, res) => userController.deleteUser(req, res, io));
 
        
 
@@ -195,7 +196,19 @@ router.get("/get_users_byid/:userid",  (req, res) => userController.getAllUserBY
 
 //  lecture 
 router.get("/get_lecture",  (req, res)=> lectureController.getLecture(req,res));
-router.post("/upload_lecture/", lecture.single("file"), (req, res)=> lectureController.addLecture(req,res,io));
+router.post("/upload_lecture/", (req, res) => {
+    lecture.single("file")(req, res, (err) => {
+        if (err) {
+            const message = err.code === "LIMIT_FILE_SIZE"
+                ? "حجم الملف كبير جداً، الحد الأقصى 25 ميجابايت"
+                : err.code === "UNSUPPORTED_FILE_TYPE"
+                    ? err.message
+                    : "فشل رفع الملف، حاول مجدداً";
+            return res.status(400).json({ success: false, message });
+        }
+        lectureController.addLecture(req, res, io);
+    });
+});
 
 // Route AI مسارات الذكاء الاصطناعي
 router.post("/ai/summarize", aiController.summarize);

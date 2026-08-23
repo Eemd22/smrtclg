@@ -4,6 +4,11 @@ const {v4: uuid} = require('uuid');
 const bcrypt = require("bcryptjs");
 const { signToken } = require("../middleware/auth");
 
+const stripPassword = (rows) => {
+    if (Array.isArray(rows)) rows.forEach((r) => delete r.password);
+    return rows;
+};
+
 
 // دالة تسجيل الدخول
 exports.login = async (req, res) => {
@@ -32,7 +37,7 @@ exports.login = async (req, res) => {
             db.query("UPDATE users SET password=? WHERE uuid=?", [await bcrypt.hash(user.password, 10), user.uuid], () => {});
         }
         result[0].token = signToken(user);
-        res.json(result);
+        res.json(stripPassword(result));
     });
 };
 // دالة جلب مستخدم بواسطة المعرف
@@ -54,7 +59,7 @@ exports.getUserBiId = (req, res) => {
     GROUP BY users.uuid
 `, [id], (err, result) => {
     if (err) return res.status(500).json(err);
-    res.json(result);
+    res.json(stripPassword(result));
 });
 };
 
@@ -62,7 +67,7 @@ exports.getUserBiId = (req, res) => {
 exports.getAllUser = (req, res) => {
     db.query(` SELECT * FROM users`, (err, result) => {
         if (err) return res.status(500).json(err);
-        res.json(result);
+        res.json(stripPassword(result));
     });
 };
 
@@ -80,7 +85,7 @@ exports.getAllUserBYId = (req, res) => {
     GROUP BY users.uuid
 `, [id], (err, result) => {
     if (err) return res.status(500).json(err);
-    res.json(result);
+    res.json(stripPassword(result));
 });
 };
 

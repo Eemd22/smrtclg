@@ -1,6 +1,15 @@
 const mysql = require("mysql2");
 
 const sslRequired = String(process.env.MYSQL_SSL || "").toLowerCase() === "true";
+const caPath = process.env.MYSQL_SSL_CA;
+
+const sslOptions = sslRequired
+  ? {
+      minVersion: "TLSv1.2",
+      ...(caPath ? { ca: require("fs").readFileSync(caPath, "utf8") } : {}),
+      rejectUnauthorized: Boolean(caPath) || process.env.MYSQL_SSL_STRICT === "true"
+    }
+  : undefined;
 
 const db = mysql.createPool({
   host: process.env.MYSQL_HOST || "localhost",
@@ -14,9 +23,7 @@ const db = mysql.createPool({
   queueLimit: 0,
   enableKeepAlive: true,
   keepAliveInitialDelay: 10000,
-  ...(sslRequired
-    ? { ssl: { minVersion: "TLSv1.2", rejectUnauthorized: true } }
-    : {})
+  ...(sslOptions ? { ssl: sslOptions } : {})
 });
 
 db.getConnection((err, connection) => {

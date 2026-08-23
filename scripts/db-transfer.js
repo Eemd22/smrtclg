@@ -13,7 +13,11 @@ const BATCH = 100;
 function sslConfig() {
   const caPath = process.env.MYSQL_SSL_CA;
   const ca = caPath ? fs.readFileSync(caPath, "utf8") : undefined;
-  return { minVersion: "TLSv1.2", rejectUnauthorized: true, ...(ca ? { ca } : {}) };
+  return {
+    minVersion: "TLSv1.2",
+    ...(ca ? { ca } : {}),
+    rejectUnauthorized: Boolean(ca) || process.env.MYSQL_SSL_STRICT === "true"
+  };
 }
 
 async function exportDb() {
@@ -83,6 +87,11 @@ async function importDb() {
     }
     const cols = Object.keys(rows[0]);
     const colList = cols.map((c) => `\`${c}\``).join(",");
+    const revive = (v) => {
+      if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(v)) return new Date(v);
+      if (v && typeof v === "object" && v.type === "Buffer" && Array.isArray(v.data)) return Buffer.from(v.data);
+      return v;
+    };
     await conn.beginTransaction();
     try {
       for (let i = 0; i < rows.length; i += BATCH) {
@@ -91,7 +100,7 @@ async function importDb() {
         const placeholders = chunk
           .map(() => `(${cols.map(() => "?").join(",")})`)
           .join(",");
-        for (const r of chunk) values.push(...cols.map((c) => r[c]));
+        for (const r of chunk) values.push(...cols.map((c) => revive(r[c])));
         await conn.query(
           `INSERT INTO \`${table.name}\` (${colList}) VALUES ${placeholders}`,
           values

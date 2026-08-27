@@ -12,15 +12,15 @@ services:
         value: production
       - key: PORT
         value: "10000"
-      - key: DB_HOST
+      - key: MYSQL_HOST
         sync: false
-      - key: DB_PORT
+      - key: MYSQL_PORT
         sync: false
-      - key: DB_USER
+      - key: MYSQL_USER
         sync: false
-      - key: DB_PASSWORD
+      - key: MYSQL_PASSWORD
         sync: false
-      - key: DB_NAME
+      - key: MYSQL_DATABASE
         sync: false
-      - key: DB_SSL
+      - key: MYSQL_SSL
         sync: false

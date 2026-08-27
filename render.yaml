@@ -12,15 +12,15 @@ services:
         value: production
       - key: PORT
         value: "10000"
-      - key: MYSQL_HOST
-        sync: false
-      - key: MYSQL_PORT
-        sync: false
-      - key: MYSQL_USER
-        sync: false
-      - key: MYSQL_PASSWORD
-        sync: false
-      - key: MYSQL_DATABASE
-        sync: false
-      - key: MYSQL_SSL
+      - key: DB_HOST
+        value: mysql-1ae74dac-emd-980e.d.aivencloud.com
+      - key: DB_PORT
+        value: "16466"
+      - key: DB_USER
+        value: avnadmin
+      - key: DB_NAME
+        value: smart_college
+      - key: DB_SSL
+        value: "true"
+      - key: DB_PASSWORD
         sync: false

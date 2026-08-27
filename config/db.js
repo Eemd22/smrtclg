@@ -10,19 +10,17 @@ const sslRequired = String(process.env.MYSQL_SSL || process.env.DB_SSL || "").to
 const caPath = process.env.MYSQL_SSL_CA || process.env.DB_SSL_CA;
 const isAiven = String(host || "").includes("aivencloud.com");
 
-const sslOptions = sslRequired
-  ? {
-      minVersion: "TLSv1.2",
-      ...(caPath
-        ? { ca: require("fs").readFileSync(caPath, "utf8") }
-        : isAiven
-        ? { rejectUnauthorized: false }
-        : {}),
-      rejectUnauthorized: isAiven
-        ? false
-        : Boolean(caPath) || process.env.MYSQL_SSL_STRICT === "true",
-    }
-  : undefined;
+let sslOptions;
+if (sslRequired) {
+  sslOptions = {
+    minVersion: "TLSv1.2",
+    ...(caPath ? { ca: require("fs").readFileSync(caPath, "utf8") } : {}),
+    rejectUnauthorized: Boolean(caPath) || process.env.MYSQL_SSL_STRICT === "true",
+  };
+} else if (isAiven) {
+  // Aiven يتطلب SSL إلزامياً حتى لو لم يُضبط المتغير صراحةً
+  sslOptions = { rejectUnauthorized: false };
+}
 
 const poolConfig = {
   host,

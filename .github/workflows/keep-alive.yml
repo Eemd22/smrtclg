@@ -11,5 +11,5 @@ jobs:
     steps:
       - name: Ping Render Server
         run: |
-          curl -f https://smartapp-api-mcf5.onrender.com/health || echo "Server responded"
+          curl -f https://smartapp-api-mjqw.onrender.com/health || echo "Server responded"
           echo "Ping completed at $(date)"

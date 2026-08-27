@@ -3,31 +3,24 @@ services:
     name: smartapp-api
     runtime: node
     plan: free
-    region: frankfurt
-    buildCommand: npm ci || npm install
+    branch: main
+    buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /health
-    autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
-      - key: JWT_SECRET
-        generateValue: true
-      - key: MYSQL_HOST
+      - key: PORT
+        value: "10000"
+      - key: DB_HOST
         sync: false
-      - key: MYSQL_PORT
+      - key: DB_PORT
         sync: false
-      - key: MYSQL_USER
+      - key: DB_USER
         sync: false
-      - key: MYSQL_PASSWORD
+      - key: DB_PASSWORD
         sync: false
-      - key: MYSQL_DATABASE
+      - key: DB_NAME
         sync: false
-      - key: MYSQL_SSL
-        value: "true"
-      - key: MYSQL_CONNECTION_LIMIT
-        value: "5"
-      - key: OPENAI_API_KEY
+      - key: DB_SSL
         sync: false
-      - key: OPENAI_BASE_URL
-        value: "https://api.openai.com/v1"

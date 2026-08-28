@@ -191,51 +191,84 @@ function validateLecturePayload(body, cb) {
 
 // مزامنة المستخدمين أصحاب دور "محاضر": كل مستخدم بدور محاضر يُنشأ له سجل في جدول المحاضرين
 function syncLecturerUsers(done) {
-  const sql = `
-    INSERT INTO lecturers (lecturer_name, user_id)
-    SELECT u.username, u.uuid
-    FROM users u
-    LEFT JOIN lecturers l ON l.user_id = u.uuid
-    WHERE u.roles = 'محاضر' AND l.id IS NULL
-  `;
-  db.query(sql, () => done());
+  db.query("SHOW COLUMNS FROM lecturers LIKE 'user_id'", (colErr, colRows) => {
+    // إذا غاب عمود user_id لا يمكن المزامنة - نتجاهل بأمان ونكمل
+    if (colErr || !Array.isArray(colRows) || colRows.length === 0) return done();
+    const sql = `
+      INSERT INTO lecturers (lecturer_name, user_id)
+      SELECT u.username, u.uuid
+      FROM users u
+      LEFT JOIN lecturers l ON l.user_id = u.uuid
+      WHERE u.roles = 'محاضر' AND l.id IS NULL
+    `;
+    db.query(sql, () => done());
+  });
 }
 
 // جلب القوائم المرجعية لملء النماذج (مقررات، قاعات، محاضرون، أقسام، سنوات، مجموعات)
 exports.getReferences = (req, res) => {
   syncLecturerUsers(() => {
-  db.query("SELECT id, course_name AS name FROM courses ORDER BY course_name", (err, courses) => {
-    if (err) return res.status(500).json({ message: "خطأ في جلب المقررات" });
-    db.query("SELECT id, hall_name AS name FROM halls ORDER BY hall_name", (err2, halls) => {
-      if (err2) return res.status(500).json({ message: "خطأ في جلب القاعات" });
-      db.query(
-        `SELECT l.id,
-                COALESCE(NULLIF(u.username, ''), l.lecturer_name) AS name
-         FROM lecturers l
-         LEFT JOIN users u ON u.uuid = l.user_id
-         ORDER BY name`,
-        (err3, lecturers) => {
-        if (err3) return res.status(500).json({ message: "خطأ في جلب المحاضرين" });
-        db.query("SELECT id, name FROM departments ORDER BY name", (err4, departments) => {
-          if (err4) return res.status(500).json({ message: "خطأ في جلب الأقسام" });
-          db.query("SELECT id, year_name AS name FROM academic_years ORDER BY id", (err5, academic_years) => {
-            if (err5) return res.status(500).json({ message: "خطأ في جلب السنوات الدراسية" });
-            db.query("SELECT id, group_name AS name FROM groups_table ORDER BY id", (err6, groups) => {
-              if (err6) return res.status(500).json({ message: "خطأ في جلب المجموعات" });
-              res.json({
-                courses,
-                halls,
-                lecturers,
-                departments,
-                academic_years,
-                groups,
+    // يتعامل بأمان مع غياب عمود user_id في جدول المحاضرين (قاعدة بيانات قديمة)
+    db.query(
+      "SHOW COLUMNS FROM lecturers LIKE 'user_id'",
+      (colErr, colRows) => {
+        const hasUserId =
+          !colErr && Array.isArray(colRows) && colRows.length > 0;
+
+        const lecturersSQL = hasUserId
+          ? `SELECT l.id,
+                    COALESCE(NULLIF(u.username, ''), l.lecturer_name) AS name
+             FROM lecturers l
+             LEFT JOIN users u ON u.uuid = l.user_id
+             ORDER BY name`
+          : "SELECT id, lecturer_name AS name FROM lecturers ORDER BY lecturer_name";
+
+        db.query("SELECT id, course_name AS name FROM courses ORDER BY course_name", (err, courses) => {
+          if (err) {
+            console.error("getReferences courses:", err.message);
+            return res.status(500).json({ message: "خطأ في جلب المقررات" });
+          }
+          db.query("SELECT id, hall_name AS name FROM halls ORDER BY hall_name", (err2, halls) => {
+            if (err2) {
+              console.error("getReferences halls:", err2.message);
+              return res.status(500).json({ message: "خطأ في جلب القاعات" });
+            }
+            db.query(lecturersSQL, (err3, lecturers) => {
+              if (err3) {
+                console.error("getReferences lecturers:", err3.message);
+                return res.status(500).json({ message: "خطأ في جلب المحاضرين" });
+              }
+              db.query("SELECT id, name FROM departments ORDER BY name", (err4, departments) => {
+                if (err4) {
+                  console.error("getReferences departments:", err4.message);
+                  return res.status(500).json({ message: "خطأ في جلب الأقسام" });
+                }
+                db.query("SELECT id, year_name AS name FROM academic_years ORDER BY id", (err5, academic_years) => {
+                  if (err5) {
+                    console.error("getReferences academic_years:", err5.message);
+                    return res.status(500).json({ message: "خطأ في جلب السنوات الدراسية" });
+                  }
+                  db.query("SELECT id, group_name AS name FROM groups_table ORDER BY id", (err6, groups) => {
+                    if (err6) {
+                      console.error("getReferences groups:", err6.message);
+                      return res.status(500).json({ message: "خطأ في جلب المجموعات" });
+                    }
+                    res.json({
+                      courses,
+                      halls,
+                      lecturers,
+                      departments,
+                      academic_years,
+                      groups,
+                    });
+                  });
+                });
               });
             });
           });
         });
-      });
-    });
-  });
+      }
+    );
   });
 };
 

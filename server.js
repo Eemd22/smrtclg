@@ -23,21 +23,6 @@ const PORT = process.env.PORT || 3000;
 // فحص صحة الخادم
 app.get("/health", (req, res) => res.json({ status: "ok", uptime: process.uptime() }));
 
-// تشخيص مؤقت: يعرض المتغيرات المستخدمة للاتصال (بلا كلمة المرور)
-app.get("/dbconfig", (req, res) => {
-  res.json({
-    host: process.env.MYSQL_HOST || process.env.DB_HOST || null,
-    port: process.env.MYSQL_PORT || process.env.DB_PORT || null,
-    user: process.env.MYSQL_USER || process.env.DB_USER || null,
-    database: process.env.MYSQL_DATABASE || process.env.DB_NAME || null,
-    ssl: process.env.MYSQL_SSL || process.env.DB_SSL || null,
-    hasMysqlPassword: !!process.env.MYSQL_PASSWORD,
-    hasDbPassword: !!process.env.DB_PASSWORD,
-    dbPasswordLen: process.env.DB_PASSWORD ? String(process.env.DB_PASSWORD).length : null,
-    dbPasswordTail: process.env.DB_PASSWORD ? String(process.env.DB_PASSWORD).slice(-2) : null
-  });
-});
-
 // تقديم الملفات الثابتة مع التخزين المؤقت
 const cacheOptions = { maxAge: '7d', etag: true, lastModified: true };
 app.use("/users/uploads", express.static("users/uploads", cacheOptions));

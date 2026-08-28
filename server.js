@@ -32,7 +32,9 @@ app.get("/dbconfig", (req, res) => {
     database: process.env.MYSQL_DATABASE || process.env.DB_NAME || null,
     ssl: process.env.MYSQL_SSL || process.env.DB_SSL || null,
     hasMysqlPassword: !!process.env.MYSQL_PASSWORD,
-    hasDbPassword: !!process.env.DB_PASSWORD
+    hasDbPassword: !!process.env.DB_PASSWORD,
+    dbPasswordLen: process.env.DB_PASSWORD ? String(process.env.DB_PASSWORD).length : null,
+    dbPasswordTail: process.env.DB_PASSWORD ? String(process.env.DB_PASSWORD).slice(-2) : null
   });
 });
 

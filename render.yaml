@@ -13,14 +13,16 @@ services:
       - key: PORT
         value: "10000"
       - key: DB_HOST
-        value: mysql-1ae74dac-emd-980e.d.aivencloud.com
+        value: gateway01.eu-central-1.prod.aws.tidbcloud.com
       - key: DB_PORT
-        value: "16466"
+        value: "4000"
       - key: DB_USER
-        value: avnadmin
+        value: 4H1e8jZ9jkferE2.root
       - key: DB_NAME
         value: smart_college
       - key: DB_SSL
         value: "true"
+      - key: DB_SSL_STRICT
+        value: "false"
       - key: DB_PASSWORD
         sync: false

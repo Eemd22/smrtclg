@@ -54,30 +54,48 @@ exports.getConversations = (req, res) => {
 
     if (!userId) return res.status(400).json({ message: "userId is required" });
 
-    // الطرف الآخر من المحادثة (ليس المستخدم نفسه)
-    const other = "IF(c.user_one = ?, c.user_two, c.user_one)";
-
+    // السؤال القياسي (متوافق مع MySQL و TiDB): الانضمام إلى جدول users مرتين
+    // ثم تحديد "الطرف الآخر" في الكود بدلاً من IF داخل JOIN
     const sql = `
         SELECT c.id AS conversation_id,
                c.user_one, c.user_two,
                c.last_message, c.last_sender, c.last_message_at,
                c.created_at,
-               ${other} AS other_user_id,
-               u.username AS other_username,
-               u.profile AS other_profile,
-               u.roles AS other_roles,
+               u1.username AS user_one_username, u1.profile AS user_one_profile, u1.roles AS user_one_roles,
+               u2.username AS user_two_username, u2.profile AS user_two_profile, u2.roles AS user_two_roles,
                (SELECT COUNT(*) FROM messages m
                 WHERE m.conversation_id = c.id AND m.sender_id <> ? AND m.is_read = 0
                ) AS unread_count
         FROM conversations c
-        INNER JOIN users u ON u.uuid = ${other}
+        INNER JOIN users u1 ON u1.uuid = c.user_one
+        INNER JOIN users u2 ON u2.uuid = c.user_two
         WHERE c.user_one = ? OR c.user_two = ?
         ORDER BY COALESCE(c.last_message_at, c.created_at) DESC
     `;
 
-    db.query(sql, [userId, userId, userId, userId], (err, result) => {
+    db.query(sql, [userId, userId, userId], (err, result) => {
         if (err) return res.status(500).json(err);
-        res.json(result);
+
+        // تحديد الطرف الآخر ومستوى القوائم الناتجة
+        const rows = result.map((r) => {
+            const isUserOne = r.user_one === userId;
+            return {
+                conversation_id: r.conversation_id,
+                user_one: r.user_one,
+                user_two: r.user_two,
+                last_message: r.last_message,
+                last_sender: r.last_sender,
+                last_message_at: r.last_message_at,
+                created_at: r.created_at,
+                unread_count: r.unread_count || 0,
+                other_user_id: isUserOne ? r.user_two : r.user_one,
+                other_username: isUserOne ? r.user_two_username : r.user_one_username,
+                other_profile: isUserOne ? r.user_two_profile : r.user_one_profile,
+                other_roles: isUserOne ? r.user_two_roles : r.user_one_roles,
+            };
+        });
+
+        res.json(rows);
     });
 };
 

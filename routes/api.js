@@ -23,6 +23,7 @@ const timetableController = require("../controllers/timetable.controller");
     const activityCommentController = require("../controllers/activity.commentController");
     const boardCommentController = require("../controllers/board.commentController");
   const channelActivityLikeController = require("../controllers/channelActivity.likeController");
+  const chatController = require("../controllers/chat.controller");
 
 // اكواد رفع الملفات
  const upload = require("../middleware/users");
@@ -113,10 +114,10 @@ router.get("/get_users_byid/:userid",  (req, res) => userController.getAllUserBY
  router.put("/delete_board/:b_id", ownBoard, board.single("image"), (req, res) => boardController.deleteBoard(req, res, io));
  router.put("/edit_board/:b_id", ownBoard, (req, res) => boardController.editBoard(req, res, io));
 
-// Route Board Likes مسارات اعجابات البورد
+// Route Board Likes مسارات اعجابات البورت
  router.post("/add_board_like", (req, res) => boardLikeController.addBoardLike(req, res, io));
 
-// Route Board Comments مسارات تعليقات البورد
+// Route Board Comments مسارات تعليقات البورت
  router.post("/add_board_comment", (req, res) => boardCommentController.addBoardComment(req, res, io));
  router.get("/get_board_comments/:b_id", (req, res) => boardCommentController.getBoardComments(req, res));
 
@@ -241,6 +242,13 @@ router.post("/ai/summarize", aiController.summarize);
 router.post("/ai/search", aiController.smartSearch);
 router.post("/ai/chat", aiController.chatbot);
 router.post("/ai/tags", aiController.suggestTags);
+
+// Route Chat مسارات المراسلة
+router.get("/conversations/:userId", (req, res) => chatController.getConversations(req, res));
+router.post("/conversations/create", (req, res) => chatController.getOrCreateConversation(req, res, io));
+router.get("/conversations/:conversationId/messages/:userId", (req, res) => chatController.getMessages(req, res, io));
+router.post("/messages/send", (req, res) => chatController.sendMessage(req, res, io));
+router.put("/conversations/:conversationId/read/:userId", (req, res) => chatController.markRead(req, res));
 
  return router;
 };
